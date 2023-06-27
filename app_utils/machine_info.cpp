@@ -29,7 +29,9 @@
 
 #pragma comment(lib, "iphlpapi.lib")
 
-int infoOfNetworkInterfaceCard() {
+void infoOfNetworkInterfaceCard() {
+    std::cout << __func__ << std::endl;
+
     // Get the size of the buffer needed for the adapter information
     ULONG ulBufferSize = 0;
     GetAdaptersInfo(NULL, &ulBufferSize);
@@ -66,52 +68,147 @@ int infoOfNetworkInterfaceCard() {
 
     // Free the adapter information buffer
     delete[] pAdapterInfo;
-
-    return 0;
+    
 }
 
 
-int InfoOfOperationSystemVersion() {
+void infoOfOperationSystemVersion() {
+    std::cout << __func__ << std::endl;
+
     OSVERSIONINFO osvi;
     ZeroMemory(&osvi, sizeof(OSVERSIONINFO));
     osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
     GetVersionEx(&osvi);
     std::cout << "Windows version: " << osvi.dwMajorVersion << "." << osvi.dwMinorVersion << std::endl;
-    return 0;
+
 }
 
 
-int infoOfCPU() {
+void infoOfCPU() {
+    std::cout << __func__ << std::endl;
+
     SYSTEM_INFO sysInfo;
     GetSystemInfo(&sysInfo);
     std::cout << "Processor architecture: " << sysInfo.wProcessorArchitecture << std::endl;
     std::cout << "Number of processors: " << sysInfo.dwNumberOfProcessors << std::endl;
     std::cout << "Processor type: " << sysInfo.dwProcessorType << std::endl;
-    return 0;
 }
 
 
-int infoOfDisk() {
+void infoOfDisk() {
+     std::cout << __func__ << std::endl;
+
     ULARGE_INTEGER freeBytesAvailable, totalNumberOfBytes, totalNumberOfFreeBytes;
     GetDiskFreeSpaceEx("C:", &freeBytesAvailable, &totalNumberOfBytes, &totalNumberOfFreeBytes);
     std::cout << "Free space: " << freeBytesAvailable.QuadPart << std::endl;
     std::cout << "Total space: " << totalNumberOfBytes.QuadPart << std::endl;
+
+}
+
+/****************/
+#include <iostream>
+#include <comdef.h>
+#include <Wbemidl.h>
+
+#pragma comment(lib, "wbemuuid.lib")
+
+int main() {
+    HRESULT hr;
+    IWbemLocator* pLocator = NULL;
+    IWbemServices* pService = NULL;
+    IEnumWbemClassObject* pEnum = NULL;
+    IWbemClassObject* pObj = NULL;
+    VARIANT var;
+
+    // Initialize COM
+    hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
+    if (FAILED(hr)) {
+        std::cerr << "Error: CoInitializeEx failed" << std::endl;
+        return -1;
+    }
+
+    // Create a WMI locator
+    hr = CoCreateInstance(CLSID_WbemLocator, 0, CLSCTX_INPROC_SERVER, IID_IWbemLocator, (LPVOID*)&pLocator);
+    if (FAILED(hr)) {
+        std::cerr << "Error: CoCreateInstance failed" << std::endl;
+        CoUninitialize();
+        return -1;
+    }
+
+    // Connect to the WMI service
+    hr = pLocator->ConnectServer(_bstr_t(L"ROOT\\CIMV2"), NULL, NULL, 0, NULL, 0, 0, &pService);
+    if (FAILED(hr)) {
+        std::cerr << "Error: ConnectServer failed" << std::endl;
+        pLocator->Release();
+        CoUninitialize();
+        return -1;
+    }
+
+    // Set the security
+    hr = CoSetProxyBlanket(pService, RPC_C_AUTHN_WINNT, RPC_C_AUTHZ_NONE, NULL, RPC_C_AUTHN_LEVEL_CALL, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE);
+    if (FAILED(hr)) {
+        std::cerr << "Error: CoSetProxyBlanket failed" << std::endl;
+        pService->Release();
+        pLocator->Release();
+        CoUninitialize();
+        return -1;
+    }
+
+    // Execute the query to get the network adapters
+    hr = pService->ExecQuery(_bstr_t("WQL"), _bstr_t("SELECT * FROM Win32_NetworkAdapter"), WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, NULL, &pEnum);
+    if (FAILED(hr)) {
+        std::cerr << "Error: ExecQuery failed" << std::endl;
+        pService->Release();
+        pLocator->Release();
+        CoUninitialize();
+        return -1;
+    }
+
+    // Loop through the results
+    while (pEnum->Next(WBEM_INFINITE, 1, &pObj, NULL) == S_OK) {
+        // Get the MAC address
+        hr = pObj->Get(L"MACAddress", 0, &var, NULL, NULL);
+        if (SUCCEEDED(hr)) {
+            std::wcout << L"MAC Address: " << var.bstrVal << std::endl;
+            VariantClear(&var);
+        }
+
+        // Get the manufacturer
+        hr = pObj->Get(L"Manufacturer", 0, &var, NULL, NULL);
+        if (SUCCEEDED(hr)) {
+            std::wcout << L"Manufacturer: " << var.bstrVal << std::endl;
+            VariantClear(&var);
+        }
+
+        pObj->Release();
+    }
+
+    // Clean up
+    pEnum->Release();
+    pService->Release();
+    pLocator->Release();
+    CoUninitialize();
     return 0;
 }
+/*************************/
 
 #elif __APPLE__
 // macOS-specific code
 
-int InfoOfOperationSystemVersion() {
+void infoOfOperationSystemVersion() {
+    std::cout << __func__ << std::endl;
+
     struct utsname info;
     uname(&info);
     std::cout << "OS name: " << info.sysname << std::endl;
     std::cout << "Release: " << info.release << std::endl;
     std::cout << "Version: " << info.version << std::endl;
-    return 0;
+
 }
 
-int infoOfNetworkInterfaceCard() {
+void infoOfNetworkInterfaceCard() {
+    std::cout << __func__ << std::endl;
+
     struct ifaddrs* ifaList = nullptr;
     getifaddrs(&ifaList);
     for (struct ifaddrs* ifa = ifaList; ifa != nullptr; ifa = ifa->ifa_next) {
@@ -133,34 +230,46 @@ int infoOfNetworkInterfaceCard() {
         }
     }
     freeifaddrs(ifaList);
-    return 0;
+
 }
 
 
 
-int infoOfCPU() {
+void infoOfCPU() {
+    std::cout << __func__ << std::endl;
+
     int mib[2] = { CTL_HW, HW_MODEL };
     size_t len = 0;
     sysctl(mib, 2, nullptr, &len, nullptr, 0);
     char model[len];
     sysctl(mib, 2, model, &len, nullptr, 0);
     std::cout << "CPU model: " << model << std::endl;
-    return 0;
+
 }
 
 
-int infoOfDisk() {
+void infoOfDisk() {
+    std::cout << __func__ << std::endl;
+
     struct statfs sfs;
     statfs("/", &sfs);
     std::cout << "Total space: " << sfs.f_blocks * sfs.f_bsize << std::endl;
     std::cout << "Free space: " << sfs.f_bfree * sfs.f_bsize << std::endl;
-    return 0;
+
 }
 
 #endif
 
+int main(){
 
-    int main(){
+    infoOfOperationSystemVersion();
+        
+    infoOfNetworkInterfaceCard();
+    
+    infoOfCPU();
+    
+    infoOfDisk();
+    
+    return 0;
+}
 
-        return 0;
-    }

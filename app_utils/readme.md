@@ -20,3 +20,11 @@ IP_ADAPTER_INFO是一个结构体，它提供了有关计算机网络适配器的信息，包括其IP地址、M
 17. `LeaseExpires`: DHCP租约的到期时间。
 
 这些字段提供了有关计算机网络适配器的详细信息，可以帮助开发人员编写网络应用程序。
+
+
+在使用 WMI 查询获取硬件信息时，需要对 WMI 服务设置安全权限，以确保程序可以访问所需的 WMI 类。在 Windows 操作系统中，可以使用 CoSetProxyBlanket 函数来设置安全权限。
+该函数有四个参数，分别是：
+pProxy：指向需要设置安全权限的 COM 代理的指针。
+dwAuthnSvc：指定身份验证服务的 ID。
+dwAuthzSvc：指定授权服务的 ID。
+pServerPrincName：指向服务器的主体名称的指针。
