@@ -24,6 +24,10 @@ add_executable(catch_throw exception/catch_throw.cpp)
 add_executable(file_exception exception/file_exception.cpp)
 add_executable(assert exception/assert.cpp)
 
+add_executable(regex_pattern regex_pattern/regex_pattern.cpp)
+
+add_executable(win_hardware_info win_api/hardware/hardware_info.cpp)
+
 # 查找线程库
 find_package(Threads REQUIRED)
 # 链接线程库
