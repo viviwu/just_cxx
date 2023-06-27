@@ -26,7 +26,23 @@ add_executable(assert exception/assert.cpp)
 
 add_executable(regex_pattern regex_pattern/regex_pattern.cpp)
 
-add_executable(win_hardware_info win_api/hardware/hardware_info.cpp)
+# Define a variable for system name
+set(SYSTEM_NAME ${CMAKE_SYSTEM_NAME})
+
+# Check the system name and define a macro accordingly
+if(SYSTEM_NAME STREQUAL "Windows")
+    add_compile_definitions(WINDOWS)
+
+    add_executable(machine_info app_utils/machine_info.cpp)
+
+elseif(SYSTEM_NAME STREQUAL "Linux")
+    add_compile_definitions(LINUX)
+    add_executable(machine_info app_utils/machine_info.cpp)
+elseif(SYSTEM_NAME STREQUAL "Darwin")
+    add_compile_definitions(MACOS)
+    add_executable(machine_info app_utils/machine_info.cpp)
+endif()
+
 
 # ≤È’“œﬂ≥Ãø‚
 find_package(Threads REQUIRED)
