@@ -18,7 +18,7 @@ add_executable(template_func template/template_func.cpp)
 add_executable(template_class template/template_class.cpp)
 add_executable(template_pecialization template/template_pecialization.cpp)
 
-add_executable(shared_ptr smart_ptr/shared_ptr.cpp)
+add_executable(smart_ptr smart_ptr/smart_ptr.cpp)
 
 add_executable(catch_throw exception/catch_throw.cpp)
 add_executable(file_exception exception/file_exception.cpp)
