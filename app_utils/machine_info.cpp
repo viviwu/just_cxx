@@ -50,14 +50,16 @@ void infoOfNetworkInterfaceCard() {
         // Loop through the list of adapters
         PIP_ADAPTER_INFO pAdapter = pAdapterInfo;
         while (pAdapter) {
+          std::cout <<"##############"<< std::endl;
             // Check if the adapter name contains "virtual", "vmware", or "vbox"
             std::string adapterName(pAdapter->Description);
             if (adapterName.find("Virtual") != std::string::npos ||
                 adapterName.find("Vmware") != std::string::npos ||
-                adapterName.find("Vbox") != std::string::npos) {
+                adapterName.find("Vbox") != std::string::npos ) {
                 std::cout << "VirtualAdapter: " << adapterName << std::endl;
             } else {
                 // Print out the adapter information
+                std::cout << "ComboIndex: " << pAdapter->ComboIndex << std::endl;
                 std::cout << "Adapter Name: " << pAdapter->AdapterName << std::endl;
                 std::cout << "Adapter Description: " << pAdapter->Description << std::endl;
                 std::cout << "IP Address: " << pAdapter->IpAddressList.IpAddress.String << std::endl;
