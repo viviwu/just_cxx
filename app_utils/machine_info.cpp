@@ -4,16 +4,10 @@
 #ifdef _WIN32
 // Windows-specific code
 #include <winsock2.h>  // forward declaration
+#include <iomanip>
 #include <iphlpapi.h>
 #include <windows.h>
-#pragma comment(lib, "iphlpapi.lib")
 
-/*******WMI*********/
-#include <comdef.h>
-#include <Wbemidl.h>
-
-/*******WMI*********/
-#pragma comment(lib, "wbemuuid.lib")
 
 #elif __APPLE__
 // macOS-specific code
@@ -30,9 +24,86 @@
 
 #include <iostream>
 #include <string>
+#include <vector>
 
 #ifdef _WIN32
+
+#pragma comment(lib, "iphlpapi.lib")
+
 // Windows-specific code
+#include <Windows.h>
+#include <iphlpapi.h>
+#include <stdio.h>
+
+int infoOfAdaptersAddresses() {
+    PIP_ADAPTER_ADDRESSES pAdapterAddresses = NULL;
+    ULONG outBufLen = 0;
+    DWORD dwRetVal = 0;
+
+    // 获取适配器信息所需要的缓冲区大小
+    dwRetVal = GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_INCLUDE_ALL_INTERFACES, NULL, NULL, &outBufLen);
+    if (dwRetVal == ERROR_BUFFER_OVERFLOW) {
+        // 分配缓冲区
+        pAdapterAddresses = (PIP_ADAPTER_ADDRESSES) malloc(outBufLen);
+        if (pAdapterAddresses == NULL) {
+            printf("Error: out of memory\n");
+            return 1;
+        }
+
+        // 获取适配器信息
+        dwRetVal = GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_INCLUDE_ALL_INTERFACES, NULL, pAdapterAddresses, &outBufLen);
+        if (dwRetVal == NO_ERROR) {
+            // 遍历适配器信息
+            PIP_ADAPTER_ADDRESSES pCurrAdapter = pAdapterAddresses;
+            while (pCurrAdapter) {
+                printf("Adapter Name: %S\n", pCurrAdapter->FriendlyName);
+                printf("Adapter Description: %S\n", pCurrAdapter->Description);
+                printf("Adapter MAC Address: %02X:%02X:%02X:%02X:%02X:%02X\n",
+                       pCurrAdapter->PhysicalAddress[0], pCurrAdapter->PhysicalAddress[1],
+                       pCurrAdapter->PhysicalAddress[2], pCurrAdapter->PhysicalAddress[3],
+                       pCurrAdapter->PhysicalAddress[4], pCurrAdapter->PhysicalAddress[5]);
+
+                // 遍历适配器的 单播地址
+                PIP_ADAPTER_UNICAST_ADDRESS pUnicast = pCurrAdapter->FirstUnicastAddress;
+                while (pUnicast) {
+                    char *unicast  = pUnicast->Address.lpSockaddr->sa_data;
+                    if(strlen(unicast )>0) printf("Unicast Address: %s\n", unicast );
+                    pUnicast = pUnicast->Next;
+                }
+
+                // 遍历适配器的网关地址
+                PIP_ADAPTER_GATEWAY_ADDRESS_LH pGateway = pCurrAdapter->FirstGatewayAddress;
+                while (pGateway) {
+                    char *gateway = pGateway->Address.lpSockaddr->sa_data;
+                    if(strlen(gateway)>0)
+                        printf("Gateway Address: %s\n", gateway);
+                    pGateway = pCurrAdapter->FirstGatewayAddress;
+                }
+
+                // 遍历适配器的 DNS 服务器地址
+                PIP_ADAPTER_DNS_SERVER_ADDRESS pDnsServer = pCurrAdapter->FirstDnsServerAddress;
+                while (pDnsServer) {
+                    char * dns_svr = pDnsServer->Address.lpSockaddr->sa_data;
+                    if(strlen(dns_svr)>0)
+                        printf("DNS Server Address: %s\n", dns_svr);
+                    pDnsServer = pDnsServer->Next;
+                }
+
+                printf("\n");
+                pCurrAdapter = pCurrAdapter->Next;
+            }
+        } else {
+            printf("Error: GetAdaptersAddresses failed with error %d\n", dwRetVal);
+            return 1;
+        }
+    } else {
+        printf("Error: GetAdaptersAddresses failed with error %d\n", dwRetVal);
+        return 1;
+    }
+
+    free(pAdapterAddresses);
+    return 0;
+}
 
 
 void infoOfNetworkInterfaceCard() {
@@ -141,86 +212,6 @@ void infoOfDisk() {
     std::cout << "Total space: " << totalNumberOfBytes.QuadPart << std::endl;
 }
 
-int infoOfWMI() {
-    std::cout <<"**************************"<< __func__ <<"**************************"<< std::endl;
-
-    HRESULT hr;
-    IWbemLocator* pLocator = NULL;
-    IWbemServices* pService = NULL;
-    IEnumWbemClassObject* pEnum = NULL;
-    IWbemClassObject* pObj = NULL;
-    VARIANT var;
-
-    // Initialize COM
-    hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
-    if (FAILED(hr)) {
-        std::cerr << "Error: CoInitializeEx failed" << std::endl;
-        return -1;
-    }
-
-    // Create a WMI locator
-    hr = CoCreateInstance(CLSID_WbemLocator, 0, CLSCTX_INPROC_SERVER, IID_IWbemLocator, (LPVOID*)&pLocator);
-    if (FAILED(hr)) {
-        std::cerr << "Error: CoCreateInstance failed" << std::endl;
-        CoUninitialize();
-        return -1;
-    }
-
-    // Connect to the WMI service
-    hr = pLocator->ConnectServer(_bstr_t(L"ROOT\\CIMV2"), NULL, NULL, 0, NULL, 0, 0, &pService);
-    if (FAILED(hr)) {
-        std::cerr << "Error: ConnectServer failed" << std::endl;
-        pLocator->Release();
-        CoUninitialize();
-        return -1;
-    }
-
-    // Set the security
-    hr = CoSetProxyBlanket(pService, RPC_C_AUTHN_WINNT, RPC_C_AUTHZ_NONE, NULL, RPC_C_AUTHN_LEVEL_CALL, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, EOAC_NONE);
-    if (FAILED(hr)) {
-        std::cerr << "Error: CoSetProxyBlanket failed" << std::endl;
-        pService->Release();
-        pLocator->Release();
-        CoUninitialize();
-        return -1;
-    }
-
-    // Execute the query to get the network adapters
-    hr = pService->ExecQuery(_bstr_t("WQL"), _bstr_t("SELECT * FROM Win32_NetworkAdapter"), WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, NULL, &pEnum);
-    if (FAILED(hr)) {
-        std::cerr << "Error: ExecQuery failed" << std::endl;
-        pService->Release();
-        pLocator->Release();
-        CoUninitialize();
-        return -1;
-    }
-
-    // Loop through the results
-    while (pEnum->Next(WBEM_INFINITE, 1, &pObj, NULL) == S_OK) {
-        // Get the MAC address
-        hr = pObj->Get(L"MACAddress", 0, &var, NULL, NULL);
-        if (SUCCEEDED(hr)) {
-            std::wcout << L"MAC Address: " << var.bstrVal << std::endl;
-            VariantClear(&var);
-        }
-
-        // Get the manufacturer
-        hr = pObj->Get(L"Manufacturer", 0, &var, NULL, NULL);
-        if (SUCCEEDED(hr)) {
-            std::wcout << L"Manufacturer: " << var.bstrVal << std::endl;
-            VariantClear(&var);
-        }
-
-        pObj->Release();
-    }
-
-    // Clean up
-    pEnum->Release();
-    pService->Release();
-    pLocator->Release();
-    CoUninitialize();
-    return 0;
-}
 
 #elif __APPLE__
 // macOS-specific code
@@ -292,6 +283,10 @@ void infoOfDisk() {
 
 int main(){
 
+//    GF_guess_localip();
+
+    infoOfAdaptersAddresses();
+/*
     infoOfOperationSystemVersion();
         
     infoOfNetworkInterfaceCard();
@@ -299,9 +294,8 @@ int main(){
     infoOfCPU();
     
     infoOfDisk();
-
-    infoOfWMI();
-
+*/
+    getchar();
     return 0;
 }
 
