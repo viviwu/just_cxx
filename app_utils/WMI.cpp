@@ -89,7 +89,7 @@ int main() {
     hres = pSvc->ExecQuery(
         _bstr_t("WQL"), _bstr_t("SELECT * FROM Win32_NetworkAdapter"), WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY,
         NULL,
-        &pEnumerator); // WHERE AdapterTypeId=0 AND MACAddress IS NOT NULL \ NetConnectionStatus=2\ WHERE PhysicalAdapter=TRUE
+        &pEnumerator); // WHERE AdapterTypeId=0 AND CurrentAddress IS NOT NULL \ NetConnectionStatus=2\ WHERE PhysicalAdapter=TRUE
 
     if (FAILED(hres)) {
         std::cerr << "Failed to execute WMI query. Error code = 0x" << std::hex << hres << std::endl;
@@ -107,7 +107,7 @@ int main() {
         if (0 == uReturn || FAILED(hres))
             break;
         // Get the value of the Name property :PNPDeviceIDNameManufacturer
-        // NetConnectionStatusSpeedMACAddressAdapterTypePhysicalAdapterNetEnabled
+        // NetConnectionStatusSpeedCurrentAddressAdapterTypePhysicalAdapterNetEnabled
 
         // 获取网卡的 PNPDeviceID 属性
         VARIANT vtPNPDeviceID;
@@ -120,7 +120,7 @@ int main() {
 
         // 获取 MAC 地址
         VARIANT vtMac;
-        hres = pClsObj->Get(L"MACAddress", 0, &vtMac, 0, 0);
+        hres = pClsObj->Get(L"CurrentAddress", 0, &vtMac, 0, 0);
 
         // 获取网卡名称
         VARIANT vtName;

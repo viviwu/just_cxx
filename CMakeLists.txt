@@ -46,16 +46,16 @@ if(SYSTEM_NAME STREQUAL "Windows")
     add_compile_definitions(WINDOWS)
 
     add_executable(machine_info app_utils/machine_info.cpp)
-
-    add_executable(WMI app_utils/WMI.cpp )
-
+    add_executable(WMI app_utils/WMI.cpp)
+    add_executable(HackMacAddress app_utils/WDK/HackMacAddress.cpp app_utils/WDK/HackMacAddress.h app_utils/WDK/HackMAC.cpp )
+    add_executable(hardware_info  app_utils/WDI/hardware_info.cpp app_utils/WDI/WMI_DeviceQuery.h app_utils/WDI/WMI_DeviceQuery.cpp)
 
 elseif(SYSTEM_NAME STREQUAL "Linux")
     add_compile_definitions(LINUX)
     add_executable(machine_info app_utils/machine_info.cpp)
 elseif(SYSTEM_NAME STREQUAL "Darwin")
     add_compile_definitions(MACOS)
-    add_executable(machine_info app_utils/machine_info.cpp )
+    add_executable(machine_info app_utils/machine_info.cpp)
 endif()
 
 
