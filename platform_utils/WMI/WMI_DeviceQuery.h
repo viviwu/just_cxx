@@ -53,7 +53,7 @@ MSN：splashcn@msn.com
 /*
 功能：通过WMI获取设备属性
 参数说明：
-	iQueryType：需要查询的设备属性
+	query_type：需要查询的设备属性
 			0：网卡原生MAC地址
 			1：硬盘序列号
 			2：主板序列号
@@ -62,12 +62,12 @@ MSN：splashcn@msn.com
 			5：主板型号
 			6：网卡当前MAC地址
 	properties：存储设备属性值
-	iSize：可存储的最大设备个数
+	list_size：可存储的最大设备个数
 返回值：
 	 -1：不支持的设备属性值
 	 -2：WMI连接失败
 	 -3：不正确的WQL查询语句
 	>=0：获取的设备个数	
 */
-extern "C" __declspec(dllexport) INT __stdcall WMI_DeviceQuery( INT iQueryType, T_DEVICE_PROPERTY *properties, INT iSize );
+extern "C" __declspec(dllexport) INT __stdcall WMI_DeviceQuery( INT query_type, T_DEVICE_PROPERTY *properties, INT list_size );
 

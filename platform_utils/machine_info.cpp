@@ -56,9 +56,10 @@ int infoOfAdaptersAddresses() {
             // ±éÀúÊÊÅäÆ÷ÐÅÏ¢
             PIP_ADAPTER_ADDRESSES pCurrAdapter = pAdapterAddresses;
             while (pCurrAdapter) {
-                printf("Adapter Name: %S\n", pCurrAdapter->FriendlyName);
-                printf("Adapter Description: %S\n", pCurrAdapter->Description);
-                printf("Adapter MAC Address: %02X:%02X:%02X:%02X:%02X:%02X\n",
+                printf("AdapterName: %s\n", pCurrAdapter->AdapterName);
+                printf("FriendlyName: %lS\n", pCurrAdapter->FriendlyName);
+                if(pCurrAdapter->Description != NULL) printf("AdapterDescription: %S\n", pCurrAdapter->Description);
+                printf("Adapter MAC Address: %02X-%02X-%02X-%02X-%02X-%02X\n",
                        pCurrAdapter->PhysicalAddress[0], pCurrAdapter->PhysicalAddress[1],
                        pCurrAdapter->PhysicalAddress[2], pCurrAdapter->PhysicalAddress[3],
                        pCurrAdapter->PhysicalAddress[4], pCurrAdapter->PhysicalAddress[5]);
@@ -295,7 +296,7 @@ int main(){
     
     infoOfDisk();
 */
-    getchar();
+//    getchar();
     return 0;
 }
 

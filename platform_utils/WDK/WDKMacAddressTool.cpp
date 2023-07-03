@@ -2,7 +2,7 @@
 // Created by dejavu on 2023/6/30.
 //
 
-#include "HackMacAddress.h"
+#include "WDKMacAddressTool.h"
 
 #include <tchar.h>
 #include <strsafe.h>
@@ -33,7 +33,7 @@ const GUID GUID_QUERYSET[] = {
 };
 
 // 获取网卡原生MAC地址
-static BOOL HackGetMacAddress( TCHAR* device_path, T_MAC_ADDRESS *mac_address_list, INT iIndex, BOOL includeUSB )
+static BOOL GetGetMacAddress( TCHAR* device_path, T_MAC_ADDRESS *mac_address_list, INT iIndex, BOOL includeUSB )
 {
   HANDLE	hDeviceFile;
   BOOL	isOK = FALSE;
@@ -89,18 +89,18 @@ static BOOL HackGetMacAddress( TCHAR* device_path, T_MAC_ADDRESS *mac_address_li
   return isOK;
 }
 
-static BOOL HackGetProperty( TCHAR* device_path, INT iQueryType, T_MAC_ADDRESS *mac_address_list, INT iIndex )
+static BOOL GetDeviceProperty( TCHAR* device_path, INT query_type, T_MAC_ADDRESS *mac_address_list, INT iIndex )
 {
   BOOL isOK = FALSE;
 
-  switch( iQueryType )
+  switch( query_type )
   {
     case 0:		// 网卡原生MAC地址（包含USB网卡）
-      isOK = HackGetMacAddress( device_path, mac_address_list, iIndex, TRUE );
+      isOK = GetGetMacAddress( device_path, mac_address_list, iIndex, TRUE );
       break;
 
     case 1:		// 网卡原生MAC地址（剔除USB网卡）
-      isOK = HackGetMacAddress( device_path, mac_address_list, iIndex, FALSE );
+      isOK = GetGetMacAddress( device_path, mac_address_list, iIndex, FALSE );
       break;
 
     default:
@@ -110,33 +110,35 @@ static BOOL HackGetProperty( TCHAR* device_path, INT iQueryType, T_MAC_ADDRESS *
   return isOK;
 }
 
-INT HackMacAddress( INT iQueryType, T_MAC_ADDRESS *mac_address_list, INT iSize )
+INT QueryMacAddress( INT query_type, T_MAC_ADDRESS *mac_address_list, INT list_size )
 {
   HDEVINFO	hdev_info;
   DWORD		member_index, required_size;
   SP_DEVICE_INTERFACE_DATA			device_interface_data;
   PSP_DEVICE_INTERFACE_DETAIL_DATA	device_interface_detail_data;
-  PSP_DEVINFO_DATA device_info_data;
-  INT	iTotal = 0;
+  SP_DEVINFO_DATA device_info_data;
+  INT	devs_total = 0;
+  TCHAR fname[256], locinfo[256];
+  PDWORD reg_data_type;
 
   // 判断查询类型是否支持
-  if( (iQueryType < 0) || (iQueryType >= sizeof(GUID_QUERYSET)/sizeof(GUID)) )
+  if( (query_type < 0) || (query_type >= sizeof(GUID_QUERYSET)/sizeof(GUID)) )
   {
     return -2;	// 查询类型不支持
   }
 
   // 获取设备信息集
-  hdev_info = SetupDiGetClassDevs( GUID_QUERYSET + iQueryType, NULL, NULL, DIGCF_PRESENT | DIGCF_INTERFACEDEVICE );
+  hdev_info = SetupDiGetClassDevs( GUID_QUERYSET + query_type, NULL, NULL, DIGCF_PRESENT | DIGCF_INTERFACEDEVICE );
   if( hdev_info == INVALID_HANDLE_VALUE )
   {
     return -1;
   }
 
+    device_interface_data.cbSize = sizeof(SP_DEVICE_INTERFACE_DATA);
   // 枚举设备信息集中所有设备
-  device_interface_data.cbSize = sizeof(SP_DEVICE_INTERFACE_DATA);
-  for( member_index = 0; ((mac_address_list == NULL) || (iTotal < iSize)); member_index++ )
+  for( member_index = 0; ((mac_address_list == NULL) || (devs_total < list_size)); member_index++ )
   {	// 获取设备接口
-    if( !SetupDiEnumDeviceInterfaces( hdev_info, NULL, GUID_QUERYSET + iQueryType, member_index, &device_interface_data ) )
+    if( !SetupDiEnumDeviceInterfaces( hdev_info, NULL, GUID_QUERYSET + query_type, member_index, &device_interface_data ) )
     {	// 设备枚举完毕
       break;
     }
@@ -153,14 +155,14 @@ INT HackMacAddress( INT iQueryType, T_MAC_ADDRESS *mac_address_list, INT iSize )
     {
       if( mac_address_list != NULL )
       {
-        if( HackGetProperty( device_interface_detail_data->DevicePath, iQueryType, mac_address_list, iTotal ) )
+        if( GetDeviceProperty( device_interface_detail_data->DevicePath, query_type, mac_address_list, devs_total ) )
         {
-          iTotal++;
+          devs_total++;
         }
       }
       else
       {
-        iTotal++;
+        devs_total++;
       }
     }
 
@@ -169,5 +171,5 @@ INT HackMacAddress( INT iQueryType, T_MAC_ADDRESS *mac_address_list, INT iSize )
 
   SetupDiDestroyDeviceInfoList( hdev_info );
 
-  return iTotal;
+  return devs_total;
 }

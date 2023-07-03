@@ -9,10 +9,10 @@ using namespace std;
 
 int main() {
 
-  INT iQueryType = 0;
+  INT query_type = 0;
   T_DEVICE_PROPERTY *properties = (T_DEVICE_PROPERTY *) malloc(MAX_NO * sizeof(T_DEVICE_PROPERTY));
   memset(properties, ' ', MAX_NO * sizeof(T_DEVICE_PROPERTY));
-  INT ret = WMI_DeviceQuery(iQueryType, properties, MAX_NO);
+  INT ret = WMI_DeviceQuery(query_type, properties, MAX_NO);
   cout << "ret: " << ret << endl;
   if (ret < 0) return ret;
 

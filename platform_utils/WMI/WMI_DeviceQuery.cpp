@@ -180,11 +180,11 @@ static BOOL WMI_DoWithHarddiskSerialNumber( TCHAR *SerialNumber, UINT uSize )
 	return TRUE;
 }
 
-static BOOL WMI_DoWithProperty( INT iQueryType, TCHAR *szProperty, UINT uSize )
+static BOOL WMI_DoWithProperty( INT query_type, TCHAR *szProperty, UINT uSize )
 {
 	BOOL isOK = TRUE;
 
-	switch( iQueryType )
+	switch( query_type )
 	{
 	case 0:		// 网卡原生MAC地址		
 		isOK = WMI_DoWithPNPDeviceID( szProperty, szProperty, uSize );
@@ -226,11 +226,11 @@ static BOOL isSupportDiskWMI()
 
 // 基于Windows Management Instrumentation（Windows管理规范）
 // 参照MSDN例子
-INT __stdcall WMI_DeviceQuery( INT iQueryType, T_DEVICE_PROPERTY *properties, INT iSize )
+INT __stdcall WMI_DeviceQuery( INT query_type, T_DEVICE_PROPERTY *properties, INT list_size )
 {
 	////定义COM调用的返回  HRESULT com返回类型
 	HRESULT hres;
-	INT	iTotal = 0;
+	INT	devs_total = 0;
 	
 	if (properties == NULL)
 	{
@@ -238,43 +238,43 @@ INT __stdcall WMI_DeviceQuery( INT iQueryType, T_DEVICE_PROPERTY *properties, IN
 	}
 
 	// 判断查询类型是否支持
-	if( (iQueryType < 0) || (iQueryType >= sizeof(szWQLQuery)/sizeof(T_WQL_QUERY)) )
+	if( (query_type < 0) || (query_type >= sizeof(szWQLQuery)/sizeof(T_WQL_QUERY)) )
 	{
 		cout << "Unsupport QueryType" << endl;
 		return -1;	// 查询类型不支持
 	}
 	// 硬盘序列号获取采用查询硬件的方式获取,XP不支持WMI方式获取硬盘信息
 	/*
-	if (iQueryType == 1 && !isSupportDiskWMI()) {
+	if (query_type == 1 && !isSupportDiskWMI()) {
 		DiskInfo handle = DiskInfo::GetDiskInfo();
 		UINT count = handle.LoadDiskInfo();
 		if (count > 0) {
 			for (UINT i = 0; i < count; i++) {
-				if (iTotal >= iSize)
+				if (devs_total >= list_size)
 				{
 					break;
 				}
 				char* serialNumber = handle.SerialNumber(i);
 				int iLength;
 				iLength = MultiByteToWideChar(CP_ACP, 0, serialNumber, strlen(serialNumber) + 1, NULL, 0);
-				MultiByteToWideChar(CP_ACP, 0, serialNumber, strlen(serialNumber) + 1, properties[iTotal].szProperty, iLength);
-				iTotal++;
+				MultiByteToWideChar(CP_ACP, 0, serialNumber, strlen(serialNumber) + 1, properties[devs_total].szProperty, iLength);
+				devs_total++;
 			}
 		} else {
 			UINT zeroRightCount = handle.m_serizalNoVec.size();
 			for (UINT i = 0; i < zeroRightCount; i++) {
-				if (iTotal >= iSize)
+				if (devs_total >= list_size)
 				{
 					break;
 				}
 				char* serialNumber = handle.m_serizalNoVec[i];
 				int iLength;
 				iLength = MultiByteToWideChar(CP_ACP, 0, serialNumber, strlen(serialNumber) + 1, NULL, 0);
-				MultiByteToWideChar(CP_ACP, 0, serialNumber, strlen(serialNumber) + 1, properties[iTotal].szProperty, iLength);
-				iTotal++;
+				MultiByteToWideChar(CP_ACP, 0, serialNumber, strlen(serialNumber) + 1, properties[devs_total].szProperty, iLength);
+				devs_total++;
 			}
 		}
-		return iTotal;
+		return devs_total;
 	}
    */
     // step1 初始化COM
@@ -368,7 +368,7 @@ INT __stdcall WMI_DeviceQuery( INT iQueryType, T_DEVICE_PROPERTY *properties, IN
     IEnumWbemClassObject *pEnumerator = NULL;
     hres = pSvc->ExecQuery(
 		bstr_t("WQL"), 
-		bstr_t( szWQLQuery[iQueryType].szSelect ),
+		bstr_t( szWQLQuery[query_type].szSelect ),
         WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, 
         NULL,
         &pEnumerator
@@ -386,7 +386,7 @@ INT __stdcall WMI_DeviceQuery( INT iQueryType, T_DEVICE_PROPERTY *properties, IN
 	ULONG uReturn = 0;
     while( pEnumerator )
     {
-		if( (properties != NULL) && (iTotal >= iSize) )
+		if( (properties != NULL) && (devs_total >= list_size) )
 		{
 			break;
 		}
@@ -407,7 +407,7 @@ INT __stdcall WMI_DeviceQuery( INT iQueryType, T_DEVICE_PROPERTY *properties, IN
 			//Variant 也可以包含Empty、Error、Nothing及Null等特殊值。
 			//可以用VarType函数或TypeName函数来决定如何处理 Variant 中的数据。
 			VariantInit( &vtProperty );	
-			hres = pclsObj->Get( szWQLQuery[iQueryType].szProperty, 0, &vtProperty, NULL, NULL );
+			hres = pclsObj->Get( szWQLQuery[query_type].szProperty, 0, &vtProperty, NULL, NULL );
 			if (FAILED(hres))
 			{
 				cout << "Could not Get szProperty. Error code = 0x"
@@ -416,18 +416,18 @@ INT __stdcall WMI_DeviceQuery( INT iQueryType, T_DEVICE_PROPERTY *properties, IN
 				CoUninitialize();
 				return -2;
 			}
-			USES_CONVERSION; StringCchCopy( properties[iTotal].szProperty, PROPERTY_MAX_LEN, W2T(vtProperty.bstrVal) );  // 这里vtProperty类型为bstr
+			USES_CONVERSION; StringCchCopy( properties[devs_total].szProperty, PROPERTY_MAX_LEN, W2T(vtProperty.bstrVal) );  // 这里vtProperty类型为bstr
 			VariantClear( &vtProperty );
 
 			// 对属性值做进一步的处理
-			if( WMI_DoWithProperty( iQueryType, properties[iTotal].szProperty, PROPERTY_MAX_LEN ) )
+			if( WMI_DoWithProperty( query_type, properties[devs_total].szProperty, PROPERTY_MAX_LEN ) )
 			{
-				iTotal++;
+				devs_total++;
 			}
 		}
 		else
 		{
-			iTotal++;
+			devs_total++;
 		}
 
 		pclsObj->Release();
@@ -439,5 +439,5 @@ INT __stdcall WMI_DeviceQuery( INT iQueryType, T_DEVICE_PROPERTY *properties, IN
     pLoc->Release();
     CoUninitialize();
 	
-    return iTotal;
+    return devs_total;
 }
