@@ -286,16 +286,16 @@ int main(){
 
 //    GF_guess_localip();
 
-    infoOfAdaptersAddresses();
-/*
-    infoOfOperationSystemVersion();
-        
+//    infoOfAdaptersAddresses();
+
     infoOfNetworkInterfaceCard();
-    
+
+    infoOfOperationSystemVersion();
+
     infoOfCPU();
     
     infoOfDisk();
-*/
+
 //    getchar();
     return 0;
 }

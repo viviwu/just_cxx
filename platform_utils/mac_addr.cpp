@@ -4,321 +4,230 @@
 
 #include <windows.h>
 
-#include <tchar.h>
-#include <strsafe.h>
-#include <setupapi.h>
-#include <ntddndis.h>
 #include <hidsdi.h>
 #include <iostream>
+#include <ntddndis.h>
+#include <setupapi.h>
+#include <strsafe.h>
+#include <tchar.h>
 #include <xstring>
 
-#pragma comment (lib, "Setupapi.lib")
-#pragma comment (lib, "hid.lib")
+#include <Ndisguid.h>
+//#include <ntddser.h>
+#include <Ntddmodm.h>
+#include <Ntddstor.h>
+#include <Usbiodef.h>
+
+#pragma comment(lib, "Setupapi.lib")
+#pragma comment(lib, "hid.lib")
+
+// 网卡原生MAC地址（包含USB网卡） 和  网卡原生MAC地址（剔除USB网卡） 
+const GUID GUID_QUERYSET[] = {GUID_NDIS_LAN_CLASS, GUID_NDIS_LAN_CLASS};
+
+// The following define is from ntddser.h in the DDK. It is also needed for serial port enumeration.
+#ifndef GUID_CLASS_COMPORT
+DEFINE_GUID(GUID_CLASS_COMPORT, 0x86e0d1e0L, 0x8089, 0x11d0, 0x9c, 0xe4, 0x08, 0x00, 0x3e, 0x30, 0x1f, 0x73);
+#endif
 
 #define MAX_NO 10
 
-const GUID GUID_QUERYSET[] = {
-    // 网卡原生MAC地址（包含USB网卡）
-    {0xAD498944, 0x762F, 0x11D0, 0x8D, 0xCB, 0x00, 0xC0, 0x4F, 0xC3, 0x35, 0x8C},
-
-    // 网卡原生MAC地址（剔除USB网卡）
-    {0xAD498944, 0x762F, 0x11D0, 0x8D, 0xCB, 0x00, 0xC0, 0x4F, 0xC3, 0x35, 0x8C},
-};
-
 INT QueryMacAddress() {
+    HDEVINFO hdev_info;
+    DWORD member_index, required_size;
+    SP_DEVICE_INTERFACE_DATA interface_data;
+    PSP_DEVICE_INTERFACE_DETAIL_DATA p_interface_detail_data;
+    SP_DEVINFO_DATA device_info;
+    INT devs_total = 0;
+    //    TCHAR friendly_name[256];
+    //    PDWORD reg_data_type;
+    CHAR* device_path;
 
-  HDEVINFO hdev_info;
-  DWORD member_index, required_size;
-  SP_DEVICE_INTERFACE_DATA interface_data;
-  PSP_DEVICE_INTERFACE_DETAIL_DATA p_interface_detail_data;
-  SP_DEVINFO_DATA device_info;
-  INT devs_total = 0;
-  TCHAR friendly_name[256];
-//    PDWORD reg_data_type;
-  CHAR *device_path;
-
-  // 获取设备信息集
-  hdev_info = SetupDiGetClassDevs(GUID_QUERYSET, NULL, NULL, DIGCF_PRESENT | DIGCF_INTERFACEDEVICE);
-  if (hdev_info == INVALID_HANDLE_VALUE) {
-    return -1;
-  }
-
-  interface_data.cbSize = sizeof(SP_DEVICE_INTERFACE_DATA);
-  device_info.cbSize = sizeof(SP_DEVINFO_DATA);
-  // 枚举设备信息集中所有设备
-  for (member_index = 0; member_index < MAX_NO; member_index++) {
-    // 获取设备接口
-    if (!SetupDiEnumDeviceInterfaces(hdev_info, NULL, GUID_QUERYSET, member_index, &interface_data)) {
-      break;  // 设备枚举完毕
+    // 获取设备信息集
+    hdev_info = SetupDiGetClassDevs(GUID_QUERYSET, NULL, NULL, DIGCF_PRESENT | DIGCF_INTERFACEDEVICE);
+    if (hdev_info == INVALID_HANDLE_VALUE) {
+        return -1;
     }
-    printf("********************member_index=%d ************************\n", member_index);
 
-    // 获取接收缓冲区大小，函数返回值为FALSE，GetLastError()=ERROR_INSUFFICIENT_BUFFER
-    SetupDiGetDeviceInterfaceDetail(hdev_info,
-                                    &interface_data,
-                                    NULL,
-                                    0,
-                                    &required_size,
-                                    NULL);
-    // 申请接收缓冲区
-    p_interface_detail_data = (PSP_DEVICE_INTERFACE_DETAIL_DATA) malloc(required_size);
-    p_interface_detail_data->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA);
+    interface_data.cbSize = sizeof(SP_DEVICE_INTERFACE_DATA);
+    device_info.cbSize = sizeof(SP_DEVINFO_DATA);
+    // 枚举设备信息集中所有设备
+    for (member_index = 0; member_index < MAX_NO; member_index++) {
+        // 获取设备接口
+        if (!SetupDiEnumDeviceInterfaces(hdev_info, NULL, GUID_QUERYSET, member_index, &interface_data)) {
+            break; // 设备枚举完毕
+        }
+        printf("********************member_index=%d ************************\n", member_index);
 
-    // 获取设备细节信息
-    if (SetupDiGetDeviceInterfaceDetail(hdev_info,
-                                        &interface_data,
-                                        p_interface_detail_data,
-                                        required_size,
-                                        NULL,
-                                        NULL)) {
-      device_path = p_interface_detail_data->DevicePath;
-      // 剔除虚拟网卡
-      if (_tcsnicmp(device_path + 4, TEXT("root"), 4) == 0) {
-        continue;
-      } else {
-        // 获取设备句柄
-        HANDLE hDeviceFile = CreateFile(device_path,
-                                        0,
-                                        FILE_SHARE_READ | FILE_SHARE_WRITE,
-                                        NULL,
-                                        OPEN_EXISTING,
-                                        0,
-                                        &device_info);
-        if (hDeviceFile != INVALID_HANDLE_VALUE) {
-          ULONG in_buf;
-          BYTE ucData[8];
-          DWORD dwByteRet;
+        // 获取接收缓冲区大小，函数返回值为FALSE，GetLastError()=ERROR_INSUFFICIENT_BUFFER
+        SetupDiGetDeviceInterfaceDetail(hdev_info, &interface_data, NULL, 0, &required_size, NULL);
+        // 申请接收缓冲区
+        p_interface_detail_data = (PSP_DEVICE_INTERFACE_DETAIL_DATA)malloc(required_size);
+        p_interface_detail_data->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA);
 
-          // 获取当前MAC地址
-          in_buf = OID_802_3_CURRENT_ADDRESS;
-          BOOL isOK = DeviceIoControl(hDeviceFile,
-                                      IOCTL_NDIS_QUERY_GLOBAL_STATS,
-                                      &in_buf,
-                                      sizeof(in_buf),
-                                      ucData,
-                                      sizeof(ucData),
-                                      &dwByteRet,
-                                      NULL);
-          if (isOK) {
-            // memcpy( mac_address_list[iIndex].CurrentAddress, ucData, dwByteRet );
-            printf("CurrentAddress:");
-            for (int i = 0; i < 6; ++i)
-              printf("%02X", ucData[i]);
-
-            printf("\nPermanentAddress:");
-            // 获取原生MAC地址
-            in_buf = OID_802_3_PERMANENT_ADDRESS;
-            isOK = DeviceIoControl(hDeviceFile,
-                                   IOCTL_NDIS_QUERY_GLOBAL_STATS,
-                                   &in_buf,
-                                   sizeof(in_buf),
-                                   ucData,
-                                   sizeof(ucData),
-                                   &dwByteRet,
-                                   NULL);
-            if (isOK) {
-              //memcpy( mac_address_list[iIndex].PermanentAddress, ucData, dwByteRet );
-              for (int i = 0; i < 6; ++i)
-                printf("%02X", ucData[i]);
-              printf("\n");
+        // 获取设备细节信息
+        if (SetupDiGetDeviceInterfaceDetail(hdev_info, &interface_data, p_interface_detail_data, required_size, NULL, NULL)) {
+            device_path = p_interface_detail_data->DevicePath;
+            if(strlen(device_path)>0)  printf("device_path: %s \n", device_path);
+            // 剔除虚拟网卡 :  pci#ven vs root#vmware
+            if (_tcsnicmp(device_path + 4, TEXT("root"), 4) == 0 || strstr(device_path, "vwifi")!= NULL) {
+                printf("ignore virtual device : \n");
+//                continue;
             }
-          }
-          CloseHandle(hDeviceFile);
-        }else
-          printf("DevicePath:%s \n", p_interface_detail_data->DevicePath);
-      }
+            // 获取设备句柄
+            HANDLE file_handle =
+                CreateFile(device_path, 0, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, &device_info);
+            if (file_handle != INVALID_HANDLE_VALUE) {
+                ULONG read_opt;
+                BYTE out_buf[8]={0};
+                DWORD out_buf_len;
 
-    }
-    memset(&device_info, 0, sizeof(SP_DEVINFO_DATA));
-    if (SetupDiGetDeviceInterfaceDetail(hdev_info,
-                                        &interface_data,
-                                        p_interface_detail_data,
-                                        required_size,
-                                        NULL,
-                                        &device_info)){
-      printf("ClassGuid: %s \n", device_info.ClassGuid.Data4);
-      if (SetupDiGetDeviceRegistryProperty(hdev_info,
-                                           &device_info,
-                                           SPDRP_FRIENDLYNAME,
-                                           NULL,
-                                           (PBYTE) friendly_name,
-                                           sizeof(friendly_name),
-                                           NULL)) {
-        printf("%zd friendly_name: %s\n", _tcsclen(friendly_name), friendly_name);
-      }
-    }
-
-    memset(&device_info, 0, sizeof(SP_DEVINFO_DATA));
-    BOOL ok=SetupDiGetDeviceInterfaceDetail(hdev_info,
-                                            &interface_data,
-                                            p_interface_detail_data,
-                                            required_size,
-                                            NULL,
-                                            &device_info);
-    if (ok){
-      printf("ClassGuid: %s \n", device_info.ClassGuid.Data4);
-      if (SetupDiGetDeviceRegistryProperty(hdev_info,
-                                           &device_info,
-                                           SPDRP_FRIENDLYNAME,
-                                           NULL,
-                                           (PBYTE) friendly_name,
-                                           sizeof(friendly_name),
-                                           NULL)) {
-        printf("%zd friendly_name: %s\n", _tcsclen(friendly_name), friendly_name);
-      }
+                // 获取当前MAC地址
+                read_opt = OID_802_3_CURRENT_ADDRESS; 
+                if (DeviceIoControl(file_handle, IOCTL_NDIS_QUERY_GLOBAL_STATS, &read_opt, sizeof(read_opt), out_buf,
+                                    sizeof(out_buf), &out_buf_len, NULL)) 
+                {
+                    // memcpy( mac_address_list[iIndex].CurrentAddress, out_buf, out_buf_len );
+                    printf("CurrentAddress[%ld]:", out_buf_len);
+                    for (int i = 0; i < 6; ++i)
+                        printf("%02X-", out_buf[i]);
+                }
+                memset(out_buf, 0, 8);
+                // 获取原生MAC地址
+                read_opt = OID_802_3_PERMANENT_ADDRESS; 
+                if (DeviceIoControl(file_handle, IOCTL_NDIS_QUERY_GLOBAL_STATS, &read_opt, sizeof(read_opt), out_buf,
+                                    sizeof(out_buf), &out_buf_len, NULL)) {
+                    // memcpy( mac_address_list[iIndex].PermanentAddress, out_buf, out_buf_len );
+                    printf("\npermanentAddress[%ld]:", out_buf_len);
+                    for (int i = 0; i < 6; ++i)
+                        printf("%02X-", out_buf[i]);
+                    printf("\n");
+                }
+            }else{
+                printf("file_handle == INVALID_HANDLE_VALUE!-->GetDeviceInterfaceDetail : failed\n");
+            }
+            CloseHandle(file_handle);
+        }else{
+            printf("GetDeviceInterfaceDetail : failed\n");
+        }
+        devs_total++;
+        free(p_interface_detail_data);
     }
 
-    devs_total++;
-    free(p_interface_detail_data);
-  }
+    SetupDiDestroyDeviceInfoList(hdev_info);
 
-  SetupDiDestroyDeviceInfoList(hdev_info);
+    return devs_total;
+}
 
-  return devs_total;
+using namespace std;
+
+BOOL WcharIsDigit(WCHAR ch) {
+    if (ch >= L'0' && ch <= L'9') {
+        return TRUE;
+    }
+
+    return FALSE;
 }
 
 int EnumPortsWdm() {
-  DWORD member_index, interface_detail_data_size;
-  DWORD required_size;
-  TCHAR friendly_name[256], property_buffer[256];
-  HDEVINFO hdev_info;
-  SP_DEVICE_INTERFACE_DETAIL_DATA *p_interface_detail_data;
-  SP_DEVICE_INTERFACE_DATA interface_data;
-  SP_DEVINFO_DATA device_info;
+    // Create a device information set that will be the container for
+    // the device interfaces.
+    GUID* dev_guid = (GUID*)&GUID_CLASS_COMPORT;
+    HDEVINFO hdev_info = INVALID_HANDLE_VALUE;
+    SP_DEVICE_INTERFACE_DETAIL_DATA* pDetData = NULL;
+    SP_DEVINFO_DATA dev_info = {0};
+    dev_info.cbSize = sizeof(SP_DEVINFO_DATA) ;
 
-  static const GUID ___GUID_CLASS_COMPORT = \
-    {0x86E0D1E0L, 0x8089, 0x11D0, {0x9C, 0xE4, 0x08, 0x00, 0x3E, 0x30, 0x1F, 0x73}};
-  /*static const GUID ___GUID_CLASS_COMPORT = \
-  { 0xAD498944, 0x762F, 0x11D0, { 0x8D, 0xCB, 0x00, 0xC0, 0x4F, 0xC3, 0x35, 0x8C } };*/
+    hdev_info = SetupDiGetClassDevs(dev_guid, NULL, NULL, DIGCF_PRESENT | DIGCF_DEVICEINTERFACE);
 
-
-  hdev_info = SetupDiGetClassDevs(&___GUID_CLASS_COMPORT, NULL, NULL, DIGCF_PRESENT | DIGCF_DEVICEINTERFACE);
-  if (hdev_info == INVALID_HANDLE_VALUE) {
-    return -1;
-  }
-
-  interface_detail_data_size = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA) + 256;
-
-  p_interface_detail_data = (SP_DEVICE_INTERFACE_DETAIL_DATA *) calloc(1, interface_detail_data_size);
-  if (!p_interface_detail_data) {
-    SetupDiDestroyDeviceInfoList(hdev_info);
-    return -1;
-  }
-  printf("interface_detail_data_size=%d \n", interface_detail_data_size); //261
-  interface_data.cbSize = sizeof(SP_DEVICE_INTERFACE_DATA);
-  p_interface_detail_data->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA);
-
-  for (member_index = 0;
-       SetupDiEnumDeviceInterfaces(hdev_info, NULL, &___GUID_CLASS_COMPORT, member_index, &interface_data);
-       member_index++) {
-    memset(&device_info, 0, sizeof(SP_DEVINFO_DATA));
-    device_info.cbSize = sizeof(SP_DEVINFO_DATA);
-    printf("member_index=%d  \n", member_index);
-    if (!SetupDiGetDeviceInterfaceDetail(hdev_info,
-                                         &interface_data,
-                                         p_interface_detail_data,
-                                         interface_detail_data_size,
-                                         &required_size,
-                                         &device_info)) {
-      break;
+    if (INVALID_HANDLE_VALUE == hdev_info) {
+        return FALSE;
     }
 
-    printf("required_size=%d  \n", required_size); //108
-    printf("DevicePath:%s \n", p_interface_detail_data->DevicePath);
-    //MessageBox( NULL, p_interface_detail_data->DevicePath, TEXT( "PATH" ), MB_OK );
-    // 申请接收缓冲区
-//        p_interface_detail_data = (PSP_DEVICE_INTERFACE_DETAIL_DATA)malloc( required_size );
+    // Enumerate the serial ports
+    BOOL bOk = TRUE;
+    SP_DEVICE_INTERFACE_DATA dev_if_dt;
+    DWORD dwDetDataSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA) + 256;
+    pDetData = (SP_DEVICE_INTERFACE_DETAIL_DATA*)new char[dwDetDataSize];
+    if (!pDetData) {
+        return FALSE;
+    }
+    // This is required, according to the documentation. Yes, it's weird.
+    dev_if_dt.cbSize = sizeof(SP_DEVICE_INTERFACE_DATA);
+    pDetData->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA);
+    for (DWORD member_index = 0; SetupDiEnumDeviceInterfaces(hdev_info, NULL, dev_guid, member_index, &dev_if_dt); member_index++) {
 
-    if (SetupDiGetDeviceRegistryProperty(hdev_info,
-                                         &device_info,
-                                         SPDRP_FRIENDLYNAME,
-                                         NULL,
-                                         (PBYTE) friendly_name,
-                                         sizeof(friendly_name),
-                                         NULL)) {
-      printf("friendly_name:%s \n", friendly_name);
-      // MessageBox( NULL, friendly_name, TEXT( "NAME" ), MB_OK );
+        if (bOk) {
+            // Got a device. Get the details.
+            bOk = SetupDiGetDeviceInterfaceDetail(hdev_info, &dev_if_dt, pDetData, dwDetDataSize, NULL, &dev_info);
+            if (bOk) {
+                // Got a path to the device. Try to get some more info.
+                BYTE fname[256] = {0};
+                BYTE desc[256] = {0};
+                BOOL bSuccess = SetupDiGetDeviceRegistryProperty(hdev_info, &dev_info, SPDRP_FRIENDLYNAME, NULL, (PBYTE)fname,
+                                                                 sizeof(fname), NULL);
+                bSuccess = bSuccess && SetupDiGetDeviceRegistryProperty(hdev_info, &dev_info, SPDRP_DEVICEDESC, NULL, (PBYTE)desc,
+                                                                        sizeof(desc), NULL);
+                BOOL bUsbDevice = FALSE;
+                WCHAR locinfo[256] = {0};
+                if (SetupDiGetDeviceRegistryProperty(hdev_info, &dev_info, SPDRP_LOCATION_INFORMATION, NULL, (PBYTE)locinfo,
+                                                     sizeof(locinfo), NULL)) {
+                    // Just check the first three characters to determine
+                    // if the port is connected to the USB bus. This isn't
+                    // an infallible method; it would be better to use the
+                    // BUS GUID. Currently, Windows doesn't let you query
+                    // that though (SPDRP_BUSTYPEGUID seems to exist in
+                    // documentation only).
+                    bUsbDevice = (wcsncmp(locinfo, L"USB", 3) == 0);
+                }
+                if (bSuccess) {
+                    /*if (NULL!=strstr(fname,""))
+                    {
+                    return fname;
+
+                    }*/
+                    printf("FriendlyName = %s \r\n", fname);
+                    printf("Port Desc = %s \r\n", desc);
+                }
+
+            } else {
+                if (pDetData != NULL) {
+                    delete[](char*) pDetData;
+                }
+                if (hdev_info != INVALID_HANDLE_VALUE) {
+                    SetupDiDestroyDeviceInfoList(hdev_info);
+                }
+                return FALSE;
+            }
+        } else {
+            DWORD err = GetLastError();
+            if (err != ERROR_NO_MORE_ITEMS) {
+                if (pDetData != NULL) {
+                    delete[](char*) pDetData;
+                }
+                if (hdev_info != INVALID_HANDLE_VALUE) {
+                    SetupDiDestroyDeviceInfoList(hdev_info);
+                }
+                return FALSE;
+            }
+        }
     }
 
-    if (SetupDiGetDeviceRegistryProperty(hdev_info,
-                                         &device_info,
-                                         SPDRP_LOCATION_INFORMATION,
-                                         NULL,
-                                         (PBYTE) property_buffer,
-                                         sizeof(property_buffer),
-                                         NULL)) {
-      if (_tcsnicmp(property_buffer, TEXT("USB"), 3) == 0) {
-        MessageBox(NULL, TEXT("USB"), TEXT("TYPE"), MB_OK);
-      }
+    if (pDetData != NULL) {
+        delete[](char*) pDetData;
     }
-  }
+    if (hdev_info != INVALID_HANDLE_VALUE) {
+        SetupDiDestroyDeviceInfoList(hdev_info);
+    }
 
-  free(p_interface_detail_data);
-  SetupDiDestroyDeviceInfoList(hdev_info);
-  return 0;
+    return TRUE;
 }
 
-int main() {
+int main(int argc, char* argv[]) {
+    QueryMacAddress();
 
-  QueryMacAddress();
-
+//    setlocale(LC_ALL, "chs");
 //    EnumPortsWdm();
 
-  return 0;
-}
-
-bool getDeviceProperty(HDEVINFO devices, SP_DEVINFO_DATA &device_info, DWORD property, std::wstring &value) {
-  DWORD size = 8192;
-
-  try {
-    DWORD data_type;
-    DWORD requested_size;
-    LPTSTR buffer = new TCHAR[(size / sizeof(TCHAR)) + 1];
-    memset(buffer, 0x00, (size / sizeof(TCHAR)) + 1);
-
-    if (buffer) {
-      bool success = true;
-
-      while (!SetupDiGetDeviceRegistryProperty(devices,
-                                               &device_info,
-                                               property,
-                                               &data_type,
-                                               reinterpret_cast<LPBYTE>(buffer),
-                                               size,
-                                               &requested_size)) {
-        if (GetLastError() != ERROR_INSUFFICIENT_BUFFER) {
-          success = false;
-          break;
-        }
-
-        if (data_type != REG_SZ) {
-          success = false;
-          break;
-        }
-
-        size = requested_size;
-        delete[] buffer;
-        buffer = new TCHAR[(size / sizeof(TCHAR)) + 1];
-        memset(buffer, 0x00, (size / sizeof(TCHAR)) + 1);
-
-        if (!buffer) {
-          success = false;
-          break;
-        }
-      }
-
-      if (success) {
-        value = std::wstring(reinterpret_cast<const wchar_t *const>(buffer));
-      }
-
-      delete[] buffer;
-
-      return true;
-    }
-  }
-  catch (...) {
-    std::wcerr << "Allocation error. This is serious !" << std::endl;
-  }
-
-  return false;
+    getchar();
+    return 0;
 }

@@ -48,7 +48,11 @@ if(SYSTEM_NAME STREQUAL "Windows")
     add_executable(WDK-MAC platform_utils/WDK/WDKMacAddressTool.cpp platform_utils/WDK/WDKMacAddressTool.h platform_utils/WDK/wdk_mac.cpp)
     add_executable(WMI-hardInfo platform_utils/WMI/hardware_info.cpp platform_utils/WMI/WMI_DeviceQuery.h platform_utils/WMI/WMI_DeviceQuery.cpp)
 
-    add_executable(mac_addr platform_utils/mac_addr.cpp)
+    add_executable(mac_addr platform_utils/mac_addr.cpp )
+
+    add_executable(machine_info platform_utils/machine_info.cpp )
+
+#    add_executable(netcard_info_collecter platform_utils/netcard_info_collecter.cpp platform_utils/netcard_info_collecter.h)
 
 elseif(SYSTEM_NAME STREQUAL "Linux")
     add_compile_definitions(LINUX)
