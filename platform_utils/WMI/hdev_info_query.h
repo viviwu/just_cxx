@@ -1,5 +1,5 @@
 /* ----------------------------------------------------------
-文件名称：WMI_DeviceQuery.h
+文件名称：DeviceInfoQuery.h
 
 作者：秦建辉
 
@@ -19,7 +19,7 @@ MSN：splashcn@msn.com
 			修正微软MSDN例子错误，并增加对虚拟机网卡的判断。
 			
 	V1.0	2010年04月27日
-			完成正式版本。文件名称：WMI_DeviceQuery.h
+			完成正式版本。文件名称：DeviceInfoQuery.h
 
 功能描述：
 	基于WMI获取设备属性：
@@ -32,7 +32,7 @@ MSN：splashcn@msn.com
 		6：网卡当前MAC地址
 
 接口函数：
-	WMI_DeviceQuery
+	DeviceInfoQuery
 ------------------------------------------------------------ */
 #pragma once
 
@@ -69,5 +69,5 @@ MSN：splashcn@msn.com
 	 -3：不正确的WQL查询语句
 	>=0：获取的设备个数	
 */
-extern "C" __declspec(dllexport) INT __stdcall WMI_DeviceQuery( INT query_type, T_DEVICE_PROPERTY *properties, INT list_size );
+extern "C" __declspec(dllexport) INT __stdcall DeviceInfoQuery( INT query_type, T_DEVICE_PROPERTY *properties, INT list_size );
 

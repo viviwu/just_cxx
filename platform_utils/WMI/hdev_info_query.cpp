@@ -1,4 +1,4 @@
-#include "WMI_DeviceQuery.h"
+#include "hdev_info_query.h"
 //#include "UnmanagedCode.h"
 #include <comutil.h>
 #include <Wbemidl.h>
@@ -226,7 +226,7 @@ static BOOL isSupportDiskWMI()
 
 // 基于Windows Management Instrumentation（Windows管理规范）
 // 参照MSDN例子
-INT __stdcall WMI_DeviceQuery( INT query_type, T_DEVICE_PROPERTY *properties, INT list_size )
+INT __stdcall DeviceInfoQuery( INT query_type, T_DEVICE_PROPERTY *properties, INT list_size )
 {
 	////定义COM调用的返回  HRESULT com返回类型
 	HRESULT hres;

@@ -44,22 +44,16 @@ set(SYSTEM_NAME ${CMAKE_SYSTEM_NAME})
 # Check the system name and define a macro accordingly
 if(SYSTEM_NAME STREQUAL "Windows")
     add_compile_definitions(WINDOWS)
-
-    add_executable(WDK-MAC platform_utils/WDK/WDKMacAddressTool.cpp platform_utils/WDK/WDKMacAddressTool.h platform_utils/WDK/wdk_mac.cpp)
-    add_executable(WMI-hardInfo platform_utils/WMI/hardware_info.cpp platform_utils/WMI/WMI_DeviceQuery.h platform_utils/WMI/WMI_DeviceQuery.cpp)
-
-    add_executable(mac_addr platform_utils/mac_addr.cpp )
-
-    add_executable(machine_info platform_utils/machine_info.cpp )
-
-#    add_executable(netcard_info_collecter platform_utils/netcard_info_collecter.cpp platform_utils/netcard_info_collecter.h)
+    add_executable(machine_info platform_utils/machine_info.cpp)
+    add_executable(hardware_info platform_utils/WMI/hardware_info.cpp platform_utils/WMI/hdev_info_query.h platform_utils/WMI/hdev_info_query.cpp)
+    add_executable(wdm_mac platform_utils/WDK/wdm_mac.cpp)
 
 elseif(SYSTEM_NAME STREQUAL "Linux")
     add_compile_definitions(LINUX)
-    add_executable(machine_info platform_utils/machine_info.cpp)
+    add_executable(machine_info platform_utils/WDK/machine_info.cpp)
 elseif(SYSTEM_NAME STREQUAL "Darwin")
     add_compile_definitions(MACOS)
-    add_executable(machine_info platform_utils/machine_info.cpp)
+    add_executable(machine_info platform_utils/WDK/machine_info.cpp)
 endif()
 
 
