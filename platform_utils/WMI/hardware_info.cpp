@@ -18,7 +18,11 @@ int main() {
 
   for (int i = 0; i < MAX_NO; i++) {
     cout << "+++++++++++++++++++" << i << "+++++++++++++++++++" << endl;
-    cout <<"DeviceProperty: "<< properties[i].szProperty << endl;
+    if(0==query_type){
+        cout <<"DeviceProperty: "<< properties[i].szProperty << endl;
+    }else{
+        wcout <<L"DeviceProperty: "<< properties[i].szProperty << endl;
+    }
   }
 
 //  getchar();

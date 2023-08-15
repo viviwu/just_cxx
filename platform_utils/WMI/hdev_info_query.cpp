@@ -25,32 +25,32 @@ typedef struct _T_WQL_QUERY
 const T_WQL_QUERY szWQLQuery[] = {
 
 	// 网卡原生MAC地址
-	"SELECT * FROM Win32_NetworkAdapter WHERE (MACAddress IS NOT NULL) AND (NOT (PNPDeviceID LIKE 'ROOT%'))",
-	L"PNPDeviceID",
+	"SELECT * FROM Win32_NetworkAdapter WHERE (mac_addr IS NOT NULL) AND (NOT (pnp_dev_id LIKE 'ROOT%'))",
+	L"pnp_dev_id",
 
 	// 硬盘序列号
-	"SELECT * FROM Win32_DiskDrive WHERE (SerialNumber IS NOT NULL) AND (MediaType LIKE 'Fixed hard disk%')",
-	L"SerialNumber",
+	"SELECT * FROM Win32_DiskDrive WHERE (serial_number IS NOT NULL) AND (MediaType LIKE 'Fixed hard disk%')",
+	L"serial_number",
 
 	// 主板序列号
-	"SELECT * FROM Win32_BaseBoard WHERE (SerialNumber IS NOT NULL)",
-	L"SerialNumber",	
+	"SELECT * FROM Win32_BaseBoard WHERE (serial_number IS NOT NULL)",
+	L"serial_number",	
 
 	// 处理器ID
 	"SELECT * FROM Win32_Processor WHERE (ProcessorId IS NOT NULL)",
 	L"ProcessorId",
 
 	// BIOS序列号
-	"SELECT * FROM Win32_BIOS WHERE (SerialNumber IS NOT NULL)",
-	L"SerialNumber",
+	"SELECT * FROM Win32_BIOS WHERE (serial_number IS NOT NULL)",
+	L"serial_number",
 
 	// 主板型号
 	"SELECT * FROM Win32_BaseBoard WHERE (Product IS NOT NULL)",
 	L"Product",
 
 	// 网卡当前MAC地址
-	"SELECT * FROM Win32_NetworkAdapter WHERE (MACAddress IS NOT NULL) AND (NOT (PNPDeviceID LIKE 'ROOT%'))",
-	L"MACAddress",
+	"SELECT * FROM Win32_NetworkAdapter WHERE (mac_addr IS NOT NULL) AND (NOT (pnp_dev_id LIKE 'ROOT%'))",
+	L"mac_addr",
 
 	// 
 	//"SELECT * FROM Win32_OperatingSystem WHERE (Name IS NOT NULL)",
@@ -58,23 +58,23 @@ const T_WQL_QUERY szWQLQuery[] = {
 
 };
 
-// 通过“PNPDeviceID”获取网卡原生MAC地址
-static BOOL WMI_DoWithPNPDeviceID( const TCHAR *PNPDeviceID, TCHAR *MacAddress, UINT uSize )
+// 通过“pnp_dev_id”获取网卡原生MAC地址
+static BOOL QueryPNPdeviceID( const TCHAR *pnp_dev_id, TCHAR *mac_addr, UINT uSize )
 {
-	TCHAR	DevicePath[MAX_PATH];
-	HANDLE	hDeviceFile;	
+	TCHAR	device_path[MAX_PATH];
+	HANDLE	device_handle;	
 	BOOL	isOK = FALSE;
 
 	// 生成设备路径名
-	StringCchCopy( DevicePath, MAX_PATH, TEXT("\\\\.\\") );
-	StringCchCat( DevicePath, MAX_PATH, PNPDeviceID );
-	StringCchCat( DevicePath, MAX_PATH, TEXT("#{ad498944-762f-11d0-8dcb-00c04fc3358c}") );
+	StringCchCopy( device_path, MAX_PATH, TEXT("\\\\.\\") );
+	StringCchCat( device_path, MAX_PATH, pnp_dev_id );
+	StringCchCat( device_path, MAX_PATH, TEXT("#{ad498944-762f-11d0-8dcb-00c04fc3358c}") );
 
-	// 将“PNPDeviceID”中的“\”替换成“#”，以获得真正的设备路径名
-	std::replace( DevicePath + 4, DevicePath + 4 + _tcslen(PNPDeviceID), TEXT('\\'), TEXT('#') ); 
+	// 将“pnp_dev_id”中的“\”替换成“#”，以获得真正的设备路径名
+	std::replace( device_path + 4, device_path + 4 + _tcslen(pnp_dev_id), TEXT('\\'), TEXT('#') ); 
 
 	// 获取设备句柄
-	hDeviceFile = CreateFile( DevicePath,
+	device_handle = CreateFile( device_path,
 		0,
 		FILE_SHARE_READ | FILE_SHARE_WRITE,
 		NULL,
@@ -82,7 +82,7 @@ static BOOL WMI_DoWithPNPDeviceID( const TCHAR *PNPDeviceID, TCHAR *MacAddress, 
 		0,
 		NULL);
 
-	if( hDeviceFile != INVALID_HANDLE_VALUE )
+	if( device_handle != INVALID_HANDLE_VALUE )
 	{	
 		ULONG	dwID;
 		BYTE	ucData[8];
@@ -90,35 +90,35 @@ static BOOL WMI_DoWithPNPDeviceID( const TCHAR *PNPDeviceID, TCHAR *MacAddress, 
 
 		// 获取网卡原生MAC地址
 		dwID = OID_802_3_PERMANENT_ADDRESS;
-		isOK = DeviceIoControl( hDeviceFile, IOCTL_NDIS_QUERY_GLOBAL_STATS, &dwID, sizeof(dwID), ucData, sizeof(ucData), &dwByteRet, NULL );
+		isOK = DeviceIoControl( device_handle, IOCTL_NDIS_QUERY_GLOBAL_STATS, &dwID, sizeof(dwID), ucData, sizeof(ucData), &dwByteRet, NULL );
 		if( isOK )
 		{	// 将字节数组转换成16进制字符串
 			for( DWORD i = 0; i < dwByteRet; i++ )
 			{
-				StringCchPrintf( MacAddress + (i << 1), uSize - (i << 1), TEXT("%02X"), ucData[i] );
+				StringCchPrintf( mac_addr + (i << 1), uSize - (i << 1), TEXT("%02X"), ucData[i] );
 			}
 		}
 
-		CloseHandle( hDeviceFile );
+		CloseHandle( device_handle );
 	}
 
 	return isOK;
 }
 
-static BOOL WMI_DoWithHarddiskSerialNumber( TCHAR *SerialNumber, UINT uSize )
+static BOOL QueryHardDiskSerialNumber( TCHAR *serial_number, UINT uSize )
 {
-	UINT	iLen;
+	UINT	out_buf_len;
 	UINT	i;
 
-	iLen = _tcslen( SerialNumber );
-	if( iLen == 40 )	// InterfaceType = "IDE"
+	out_buf_len = _tcslen( serial_number );
+	if( out_buf_len == 40 )	// InterfaceType = "IDE"
 	{	// 需要将16进制编码串转换为字符串
 		TCHAR ch, szBuf[32];
 		BYTE b;		
 
 		for( i = 0; i < 20; i++ )
 		{	// 将16进制字符转换为高4位
-			ch = SerialNumber[i * 2];
+			ch = serial_number[i * 2];
 			if( (ch >= '0') && (ch <= '9') )
 			{
 				b = ch - '0';
@@ -139,7 +139,7 @@ static BOOL WMI_DoWithHarddiskSerialNumber( TCHAR *SerialNumber, UINT uSize )
 			b <<= 4;
 
 			// 将16进制字符转换为低4位
-			ch = SerialNumber[i * 2 + 1];
+			ch = serial_number[i * 2 + 1];
 			if( (ch >= '0') && (ch <= '9') )
 			{
 				b += ch - '0';
@@ -163,35 +163,35 @@ static BOOL WMI_DoWithHarddiskSerialNumber( TCHAR *SerialNumber, UINT uSize )
 		if( i == 20 )
 		{	// 转换成功
 			szBuf[i] = L'\0';
-			StringCchCopy( SerialNumber, uSize, szBuf );
-			iLen = _tcslen( SerialNumber );
+			StringCchCopy( serial_number, uSize, szBuf );
+			out_buf_len = _tcslen( serial_number );
 		}
 	}
 
 	// 每2个字符互换位置
-	for( i = 0; i < iLen; i += 2 )
+	for( i = 0; i < out_buf_len; i += 2 )
 	{
-		std::swap( SerialNumber[i], SerialNumber[i+1] );
+		std::swap( serial_number[i], serial_number[i+1] );
 	}
 
 	// 去掉空格
-	std::remove( SerialNumber, SerialNumber + _tcslen(SerialNumber) + 1, L' ' );
+	std::remove( serial_number, serial_number + _tcslen(serial_number) + 1, L' ' );
 
 	return TRUE;
 }
 
-static BOOL WMI_DoWithProperty( INT query_type, TCHAR *szProperty, UINT uSize )
+static BOOL QueryProperty( INT query_type, TCHAR *szProperty, UINT uSize )
 {
 	BOOL isOK = TRUE;
 
 	switch( query_type )
 	{
 	case 0:		// 网卡原生MAC地址		
-		isOK = WMI_DoWithPNPDeviceID( szProperty, szProperty, uSize );
+		isOK = QueryPNPdeviceID( szProperty, szProperty, uSize );
 		break;
 
 	case 1:		// 硬盘序列号
-		isOK = WMI_DoWithHarddiskSerialNumber( szProperty, uSize );
+		isOK = QueryHardDiskSerialNumber( szProperty, uSize );
 		break;
 
 	case 6:		// 网卡当前MAC地址
@@ -244,7 +244,7 @@ INT __stdcall DeviceInfoQuery( INT query_type, T_DEVICE_PROPERTY *properties, IN
 		return -1;	// 查询类型不支持
 	}
 	// 硬盘序列号获取采用查询硬件的方式获取,XP不支持WMI方式获取硬盘信息
-	/*
+/*
 	if (query_type == 1 && !isSupportDiskWMI()) {
 		DiskInfo handle = DiskInfo::GetDiskInfo();
 		UINT count = handle.LoadDiskInfo();
@@ -254,10 +254,10 @@ INT __stdcall DeviceInfoQuery( INT query_type, T_DEVICE_PROPERTY *properties, IN
 				{
 					break;
 				}
-				char* serialNumber = handle.SerialNumber(i);
-				int iLength;
-				iLength = MultiByteToWideChar(CP_ACP, 0, serialNumber, strlen(serialNumber) + 1, NULL, 0);
-				MultiByteToWideChar(CP_ACP, 0, serialNumber, strlen(serialNumber) + 1, properties[devs_total].szProperty, iLength);
+				char* serial_number = handle.serial_number(i);
+				int out_buf_length;
+				out_buf_length = MultiByteToWideChar(CP_ACP, 0, serial_number, strlen(serial_number) + 1, NULL, 0);
+				MultiByteToWideChar(CP_ACP, 0, serial_number, strlen(serial_number) + 1, properties[devs_total].szProperty, out_buf_length);
 				devs_total++;
 			}
 		} else {
@@ -267,16 +267,16 @@ INT __stdcall DeviceInfoQuery( INT query_type, T_DEVICE_PROPERTY *properties, IN
 				{
 					break;
 				}
-				char* serialNumber = handle.m_serizalNoVec[i];
-				int iLength;
-				iLength = MultiByteToWideChar(CP_ACP, 0, serialNumber, strlen(serialNumber) + 1, NULL, 0);
-				MultiByteToWideChar(CP_ACP, 0, serialNumber, strlen(serialNumber) + 1, properties[devs_total].szProperty, iLength);
+				char* serial_number = handle.m_serizalNoVec[i];
+				int out_buf_length;
+				out_buf_length = MultiByteToWideChar(CP_ACP, 0, serial_number, strlen(serial_number) + 1, NULL, 0);
+				MultiByteToWideChar(CP_ACP, 0, serial_number, strlen(serial_number) + 1, properties[devs_total].szProperty, out_buf_length);
 				devs_total++;
 			}
 		}
 		return devs_total;
 	}
-   */
+*/
     // step1 初始化COM
     hres = CoInitializeEx( NULL, COINIT_MULTITHREADED ); 
     if( FAILED(hres) )
@@ -420,7 +420,7 @@ INT __stdcall DeviceInfoQuery( INT query_type, T_DEVICE_PROPERTY *properties, IN
 			VariantClear( &vtProperty );
 
 			// 对属性值做进一步的处理
-			if( WMI_DoWithProperty( query_type, properties[devs_total].szProperty, PROPERTY_MAX_LEN ) )
+			if( QueryProperty( query_type, properties[devs_total].szProperty, PROPERTY_MAX_LEN ) )
 			{
 				devs_total++;
 			}

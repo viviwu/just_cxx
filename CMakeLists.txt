@@ -11,6 +11,8 @@ set(EXECUTABLE_OUTPUT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/bin)
 
 include_directories(./)
 
+add_executable(playground base/playground.cpp)
+
 # 添加可执行文件
 if(false)
 add_executable(std_thread multi_threads/std_thread.cpp)
@@ -41,20 +43,23 @@ endif()
 # Define a variable for system name
 set(SYSTEM_NAME ${CMAKE_SYSTEM_NAME})
 
-# Check the system name and define a macro accordingly
-if(SYSTEM_NAME STREQUAL "Windows")
-    add_compile_definitions(WINDOWS)
-    add_executable(machine_info platform_utils/machine_info.cpp)
-    add_executable(hardware_info platform_utils/WMI/hardware_info.cpp platform_utils/WMI/hdev_info_query.h platform_utils/WMI/hdev_info_query.cpp)
-    add_executable(wdm_mac platform_utils/WDK/wdm_mac.cpp)
+if (false)
+    # Check the system name and define a macro accordingly
+    if(SYSTEM_NAME STREQUAL "Windows")
+        add_compile_definitions(WINDOWS)
+        add_executable(machine_info platform_utils/machine_info.cpp)
+        add_executable(hardware_info platform_utils/WMI/hardware_info.cpp platform_utils/WMI/hdev_info_query.h platform_utils/WMI/hdev_info_query.cpp)
+        add_executable(wdm_mac platform_utils/WDK/wdm_mac.cpp)
 
-elseif(SYSTEM_NAME STREQUAL "Linux")
-    add_compile_definitions(LINUX)
-    add_executable(machine_info platform_utils/WDK/machine_info.cpp)
-elseif(SYSTEM_NAME STREQUAL "Darwin")
-    add_compile_definitions(MACOS)
-    add_executable(machine_info platform_utils/WDK/machine_info.cpp)
-endif()
+    elseif(SYSTEM_NAME STREQUAL "Linux")
+        add_compile_definitions(LINUX)
+        add_executable(machine_info platform_utils/WDK/machine_info.cpp)
+    elseif(SYSTEM_NAME STREQUAL "Darwin")
+        add_compile_definitions(MACOS)
+        add_executable(machine_info platform_utils/WDK/machine_info.cpp)
+    endif()
+endif ()
+
 
 
 
