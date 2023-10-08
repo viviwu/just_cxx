@@ -2,6 +2,7 @@
 [Dd]ebug/
 [Rr]elease/
 build/*
+**/bin/*
 *.slo
 *.lo
 *.o
