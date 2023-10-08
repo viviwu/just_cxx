@@ -33,9 +33,9 @@ INT QueryMacAddress() {
   SP_DEVINFO_DATA device_info;
   INT devs_total = 0;
 
-  // Íø¿¨Ô­ÉúMACµØÖ·£¨°üº¬USBÍø¿¨£© ºÍ  Íø¿¨Ô­ÉúMACµØÖ·£¨ÌŞ³ıUSBÍø¿¨£©
+  // ç½‘å¡åŸç”ŸMACåœ°å€ï¼ˆåŒ…å«USBç½‘å¡ï¼‰ å’Œ  ç½‘å¡åŸç”ŸMACåœ°å€ï¼ˆå‰”é™¤USBç½‘å¡ï¼‰
   const GUID GUID_QUERYSET[] = {GUID_NDIS_LAN_CLASS, GUID_NDIS_LAN_CLASS};
-  // »ñÈ¡Éè±¸ĞÅÏ¢¼¯
+  // è·å–è®¾å¤‡ä¿¡æ¯é›†
   hdev_info = SetupDiGetClassDevs(GUID_QUERYSET, NULL, NULL, DIGCF_PRESENT | DIGCF_INTERFACEDEVICE);
   if (hdev_info == INVALID_HANDLE_VALUE) {
     return -1;
@@ -43,21 +43,21 @@ INT QueryMacAddress() {
 
   interface_data.cbSize = sizeof(SP_DEVICE_INTERFACE_DATA);
   device_info.cbSize = sizeof(SP_DEVINFO_DATA);
-  // Ã¶¾ÙÉè±¸ĞÅÏ¢¼¯ÖĞËùÓĞÉè±¸
+  // æšä¸¾è®¾å¤‡ä¿¡æ¯é›†ä¸­æ‰€æœ‰è®¾å¤‡
   for (member_index = 0; member_index < MAX_NO; member_index++) {
-    // »ñÈ¡Éè±¸½Ó¿Ú
+    // è·å–è®¾å¤‡æ¥å£
     if (!SetupDiEnumDeviceInterfaces(hdev_info, NULL, GUID_QUERYSET, member_index, &interface_data)) {
-      break; // Éè±¸Ã¶¾ÙÍê±Ï
+      break; // è®¾å¤‡æšä¸¾å®Œæ¯•
     }
     printf("********************member_index=%d ************************\n", member_index);
 
-    // »ñÈ¡½ÓÊÕ»º³åÇø´óĞ¡£¬º¯Êı·µ»ØÖµÎªFALSE£¬GetLastError()=ERROR_INSUFFICIENT_BUFFER
+    // è·å–æ¥æ”¶ç¼“å†²åŒºå¤§å°ï¼Œå‡½æ•°è¿”å›å€¼ä¸ºFALSEï¼ŒGetLastError()=ERROR_INSUFFICIENT_BUFFER
     SetupDiGetDeviceInterfaceDetail(hdev_info, &interface_data, NULL, 0, &required_size, NULL);
-    // ÉêÇë½ÓÊÕ»º³åÇø
+    // ç”³è¯·æ¥æ”¶ç¼“å†²åŒº
     p_interface_detail_data = (PSP_DEVICE_INTERFACE_DETAIL_DATA) malloc(required_size);
     p_interface_detail_data->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA);
 
-    // »ñÈ¡Éè±¸Ï¸½ÚĞÅÏ¢
+    // è·å–è®¾å¤‡ç»†èŠ‚ä¿¡æ¯
     if (SetupDiGetDeviceInterfaceDetail(hdev_info,
                                         &interface_data,
                                         p_interface_detail_data,
@@ -65,13 +65,13 @@ INT QueryMacAddress() {
                                         NULL,
                                         NULL)) {
       // if(strlen(device_path)>0)  printf("device_path: %s \n", device_path);
-      // ÌŞ³ıĞéÄâÍø¿¨ :  pci#ven vs root#vmware
+      // å‰”é™¤è™šæ‹Ÿç½‘å¡ :  pci#ven vs root#vmware
       if (_tcsnicmp(p_interface_detail_data->DevicePath + 4, TEXT("root"), 4) == 0 ||
           strstr(p_interface_detail_data->DevicePath, "vwifi") != NULL) {
         printf("ignore virtual device!: \n");
         // continue;
       }
-      // »ñÈ¡Éè±¸¾ä±ú
+      // è·å–è®¾å¤‡å¥æŸ„
       HANDLE file_handle =
           CreateFile(p_interface_detail_data->DevicePath,
                      0,
@@ -85,7 +85,7 @@ INT QueryMacAddress() {
         BYTE out_buf[8] = {0};
         DWORD out_buf_len;
 
-        // »ñÈ¡µ±Ç°MACµØÖ·
+        // è·å–å½“å‰MACåœ°å€
         read_opt = OID_802_3_CURRENT_ADDRESS;
         if (DeviceIoControl(file_handle, IOCTL_NDIS_QUERY_GLOBAL_STATS, &read_opt, sizeof(read_opt), out_buf,
                             sizeof(out_buf), &out_buf_len, NULL)) {
@@ -95,7 +95,7 @@ INT QueryMacAddress() {
             printf("%02X ", out_buf[i]);
         }
         memset(out_buf, 0, 8);
-        // »ñÈ¡Ô­ÉúMACµØÖ·
+        // è·å–åŸç”ŸMACåœ°å€
         read_opt = OID_802_3_PERMANENT_ADDRESS;
         if (DeviceIoControl(file_handle, IOCTL_NDIS_QUERY_GLOBAL_STATS, &read_opt, sizeof(read_opt), out_buf,
                             sizeof(out_buf), &out_buf_len, NULL)) {

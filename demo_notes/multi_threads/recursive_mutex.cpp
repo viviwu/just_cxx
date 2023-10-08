@@ -8,11 +8,11 @@
 
 using namespace std;
 
-// µİ¹éËø
+// é€’å½’é”
 recursive_mutex mtx;
 
 void recursiveFunction(int depth) {
-    // ¼ÓËø
+    // åŠ é”
     mtx.lock();
 
     cout << "Depth " << depth << ": locked" << endl;
@@ -23,17 +23,17 @@ void recursiveFunction(int depth) {
 
     cout << "Depth " << depth << ": unlocked" << endl;
 
-    // ½âËø
+    // è§£é”
     mtx.unlock();
 }
 
 int main() {
-    // µ÷ÓÃµİ¹éº¯Êı
+    // è°ƒç”¨é€’å½’å‡½æ•°
     recursiveFunction(5);
 
     return 0;
 }
 
 /*
-ÓÉÓÚ std::recursive_mutex ÀàÊÇµİ¹éµÄ£¬Òò´ËÔÚÍ¬Ò»Ïß³ÌÖĞ¶à´ÎÊ¹ÓÃ lock º¯ÊıÒ²ÊÇ°²È«µÄ¡£
+ç”±äº std::recursive_mutex ç±»æ˜¯é€’å½’çš„ï¼Œå› æ­¤åœ¨åŒä¸€çº¿ç¨‹ä¸­å¤šæ¬¡ä½¿ç”¨ lock å‡½æ•°ä¹Ÿæ˜¯å®‰å…¨çš„ã€‚
 */

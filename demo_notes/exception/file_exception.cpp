@@ -80,7 +80,7 @@ int main()
         {
             throw runtime_error("Cannot open file: " + filename);
         }
-        // 文件操作代码...
+        // 鏂囦欢鎿嶄綔浠ｇ爜...
     }
     catch (const exception& e)
     {

@@ -6,7 +6,7 @@
 #include <cstring>
 using namespace std;
 
-// 通用模板实现
+// 閫氱敤妯℃澘瀹炵幇
 template <typename T>
 void print_array(T arr[], int size)
 {
@@ -17,7 +17,7 @@ void print_array(T arr[], int size)
     cout << endl;
 }
 
-// 指针类型的偏特化实现
+// 鎸囬拡绫诲瀷鐨勫亸鐗瑰寲瀹炵幇
 template <typename T>
 void print_array(T* arr[], int size)
 {
@@ -30,12 +30,12 @@ void print_array(T* arr[], int size)
 
 int main()
 {
-    // 测试通用模板实现
+    // 娴嬭瘯閫氱敤妯℃澘瀹炵幇
     int arr1[] = {1, 2, 3};
-    print_array(arr1, 3); // 输出1 2 3
+    print_array(arr1, 3); // 杈撳嚭1 2 3
 
-    // 测试针对指针类型的偏特化实现
+    // 娴嬭瘯閽堝鎸囬拡绫诲瀷鐨勫亸鐗瑰寲瀹炵幇
     string* arr2[] = {"hello", "world", "!"};
-    print_array(arr2, 3); // 输出hello world !
+    print_array(arr2, 3); // 杈撳嚭hello world !
     return 0;
 }

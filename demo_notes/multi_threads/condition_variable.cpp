@@ -48,69 +48,69 @@ int main()
 }
 
 /*
-ÈçºÎÊ¹ÓÃÌõ¼þ±äÁ¿ÊµÏÖ¶à¸öÉú²úÕßºÍÏû·ÑÕß£¿
-ÈçºÎ±ÜÃâËÀËøºÍ¼¢¶öÎÊÌâ£¿
-ÈçºÎÊ¹ÓÃÌõ¼þ±äÁ¿ÊµÏÖÉú²úÕß-Ïû·ÑÕßÄ£ÐÍµÄÓÐ½ç¶ÓÁÐ£¿
+å¦‚ä½•ä½¿ç”¨æ¡ä»¶å˜é‡å®žçŽ°å¤šä¸ªç”Ÿäº§è€…å’Œæ¶ˆè´¹è€…ï¼Ÿ
+å¦‚ä½•é¿å…æ­»é”å’Œé¥¥é¥¿é—®é¢˜ï¼Ÿ
+å¦‚ä½•ä½¿ç”¨æ¡ä»¶å˜é‡å®žçŽ°ç”Ÿäº§è€…-æ¶ˆè´¹è€…æ¨¡åž‹çš„æœ‰ç•Œé˜Ÿåˆ—ï¼Ÿ
 
 using namespace std;
 
-// ¹²Ïí×ÊÔ´
+// å…±äº«èµ„æº
 int counter = 0;
 
-// »¥³âËøºÍÌõ¼þ±äÁ¿
+// äº’æ–¥é”å’Œæ¡ä»¶å˜é‡
 //mutex mtx;
 //condition_variable cv;
 
-// µÚÒ»¸öÏß³ÌµÄº¯Êý
+// ç¬¬ä¸€ä¸ªçº¿ç¨‹çš„å‡½æ•°
 void threadFunction1() {
     for (int i = 0; i < 1000000; ++i) {
-        // ¼ÓËø
+        // åŠ é”
         unique_lock<mutex> lock(mtx);
 
-        // ÐÞ¸Ä¹²Ïí×ÊÔ´
+        // ä¿®æ”¹å…±äº«èµ„æº
         counter++;
 
-        // Í¨ÖªµÈ´ýÔÚÌõ¼þ±äÁ¿ÉÏµÄÏß³Ì
+        // é€šçŸ¥ç­‰å¾…åœ¨æ¡ä»¶å˜é‡ä¸Šçš„çº¿ç¨‹
         cv.notify_one();
     }
 }
 
-// µÚ¶þ¸öÏß³ÌµÄº¯Êý
+// ç¬¬äºŒä¸ªçº¿ç¨‹çš„å‡½æ•°
 void threadFunction2() {
-    // ¼ÓËø
+    // åŠ é”
     unique_lock<mutex> lock(mtx);
 
-    // µÈ´ýÌõ¼þ±äÁ¿
+    // ç­‰å¾…æ¡ä»¶å˜é‡
     cv.wait(lock, []{ return counter >= 1000000; });
 
-    // ÐÞ¸Ä¹²Ïí×ÊÔ´
+    // ä¿®æ”¹å…±äº«èµ„æº
     counter--;
 
-    // Êä³ö¹²Ïí×ÊÔ´µÄÖµ
+    // è¾“å‡ºå…±äº«èµ„æºçš„å€¼
     cout << "Counter = " << counter << endl;
 }
 
 int main2() {
-    // ´´½¨Á½¸öÏß³Ì
+    // åˆ›å»ºä¸¤ä¸ªçº¿ç¨‹
     thread t1(threadFunction1);
     thread t2(threadFunction2);
 
-    // µÈ´ýÁ½¸öÏß³ÌÍê³É
+    // ç­‰å¾…ä¸¤ä¸ªçº¿ç¨‹å®Œæˆ
     t1.join();
     t2.join();
 
     return 0;
 }
 
-//ÔÚµÚÒ»¸öÏß³ÌµÄº¯ÊýÖÐ£¬ÎÒÃÇÊ¹ÓÃ»¥³âËø¶Ô¹²Ïí×ÊÔ´½øÐÐÐÞ¸Ä£¬²¢Ê¹ÓÃ notify_one º¯ÊýÍ¨ÖªµÈ´ýÔÚÌõ¼þ±äÁ¿ÉÏµÄÏß³Ì¡£
-// ÔÚµÚ¶þ¸öÏß³ÌµÄº¯ÊýÖÐ£¬ÎÒÃÇÊ¹ÓÃ»¥³âËøºÍ wait º¯ÊýµÈ´ýÌõ¼þ±äÁ¿£¬²¢ÔÚÌõ¼þÂú×ãÊ±¶Ô¹²Ïí×ÊÔ´½øÐÐÐÞ¸Ä£¬²¢Êä³öÆäÖµ¡£
+//åœ¨ç¬¬ä¸€ä¸ªçº¿ç¨‹çš„å‡½æ•°ä¸­ï¼Œæˆ‘ä»¬ä½¿ç”¨äº’æ–¥é”å¯¹å…±äº«èµ„æºè¿›è¡Œä¿®æ”¹ï¼Œå¹¶ä½¿ç”¨ notify_one å‡½æ•°é€šçŸ¥ç­‰å¾…åœ¨æ¡ä»¶å˜é‡ä¸Šçš„çº¿ç¨‹ã€‚
+// åœ¨ç¬¬äºŒä¸ªçº¿ç¨‹çš„å‡½æ•°ä¸­ï¼Œæˆ‘ä»¬ä½¿ç”¨äº’æ–¥é”å’Œ wait å‡½æ•°ç­‰å¾…æ¡ä»¶å˜é‡ï¼Œå¹¶åœ¨æ¡ä»¶æ»¡è¶³æ—¶å¯¹å…±äº«èµ„æºè¿›è¡Œä¿®æ”¹ï¼Œå¹¶è¾“å‡ºå…¶å€¼ã€‚
 //
-//Í¨¹ýÊ¹ÓÃÌõ¼þ±äÁ¿£¬ÎÒÃÇ¿ÉÒÔ¸üÓÐÐ§µØµÈ´ý¹²Ïí×ÊÔ´Âú×ãÌØ¶¨Ìõ¼þ£¬¶ø²»ÊÇÃ¦µÈ´ý¡£
+//é€šè¿‡ä½¿ç”¨æ¡ä»¶å˜é‡ï¼Œæˆ‘ä»¬å¯ä»¥æ›´æœ‰æ•ˆåœ°ç­‰å¾…å…±äº«èµ„æºæ»¡è¶³ç‰¹å®šæ¡ä»¶ï¼Œè€Œä¸æ˜¯å¿™ç­‰å¾…ã€‚
 
 
-//Ò»¸öÏß³Ì¿ÉÒÔÍ¨¹ýµ÷ÓÃÌõ¼þ±äÁ¿µÄ wait() º¯ÊýÀ´µÈ´ýÁíÒ»¸öÏß³Ì·¢ËÍÐÅºÅ£¬²¢ÔÚ½ÓÊÕµ½ÐÅºÅºó¼ÌÐøÖ´ÐÐ¡£
-// ÁíÒ»¸öÏß³Ì¿ÉÒÔÍ¨¹ýµ÷ÓÃÌõ¼þ±äÁ¿µÄ notify_one() »ò notify_all() º¯ÊýÀ´·¢ËÍÐÅºÅ¸øµÈ´ýµÄÏß³Ì¡£
-// ÀýÈç£º
+//ä¸€ä¸ªçº¿ç¨‹å¯ä»¥é€šè¿‡è°ƒç”¨æ¡ä»¶å˜é‡çš„ wait() å‡½æ•°æ¥ç­‰å¾…å¦ä¸€ä¸ªçº¿ç¨‹å‘é€ä¿¡å·ï¼Œå¹¶åœ¨æŽ¥æ”¶åˆ°ä¿¡å·åŽç»§ç»­æ‰§è¡Œã€‚
+// å¦ä¸€ä¸ªçº¿ç¨‹å¯ä»¥é€šè¿‡è°ƒç”¨æ¡ä»¶å˜é‡çš„ notify_one() æˆ– notify_all() å‡½æ•°æ¥å‘é€ä¿¡å·ç»™ç­‰å¾…çš„çº¿ç¨‹ã€‚
+// ä¾‹å¦‚ï¼š
 
 bool ready = false;
 

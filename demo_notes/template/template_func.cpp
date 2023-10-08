@@ -7,14 +7,14 @@
 
 using namespace std;
 
-// ¶¨ÒåÒ»¸öº¯ÊıÄ£°å
+// å®šä¹‰ä¸€ä¸ªå‡½æ•°æ¨¡æ¿
 template <typename T>
 T max(T x, T y) {
     return (x > y) ? x : y;
 }
 
 int main() {
-    // ÊµÀı»¯º¯ÊıÄ£°å
+    // å®ä¾‹åŒ–å‡½æ•°æ¨¡æ¿
     int a = 5, b = 10;
     cout << "Max of " << a << " and " << b << " is " << max(a, b) << endl;
 

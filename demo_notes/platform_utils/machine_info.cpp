@@ -40,20 +40,20 @@ int infoOfAdaptersAddresses() {
     ULONG outBufLen = 0;
     DWORD dwRetVal = 0;
 
-    // »ñÈ¡ÊÊÅäÆ÷ĞÅÏ¢ËùĞèÒªµÄ»º³åÇø´óĞ¡
+    // è·å–é€‚é…å™¨ä¿¡æ¯æ‰€éœ€è¦çš„ç¼“å†²åŒºå¤§å°
     dwRetVal = GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_INCLUDE_ALL_INTERFACES, NULL, NULL, &outBufLen);
     if (dwRetVal == ERROR_BUFFER_OVERFLOW) {
-        // ·ÖÅä»º³åÇø
+        // åˆ†é…ç¼“å†²åŒº
         pAdapterAddresses = (PIP_ADAPTER_ADDRESSES) malloc(outBufLen);
         if (pAdapterAddresses == NULL) {
             printf("Error: out of memory\n");
             return 1;
         }
 
-        // »ñÈ¡ÊÊÅäÆ÷ĞÅÏ¢
+        // è·å–é€‚é…å™¨ä¿¡æ¯
         dwRetVal = GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_INCLUDE_ALL_INTERFACES, NULL, pAdapterAddresses, &outBufLen);
         if (dwRetVal == NO_ERROR) {
-            // ±éÀúÊÊÅäÆ÷ĞÅÏ¢
+            // éå†é€‚é…å™¨ä¿¡æ¯
             PIP_ADAPTER_ADDRESSES pCurrAdapter = pAdapterAddresses;
             while (pCurrAdapter) {
                 printf("AdapterName: %s\n", pCurrAdapter->AdapterName);
@@ -64,7 +64,7 @@ int infoOfAdaptersAddresses() {
                        pCurrAdapter->PhysicalAddress[2], pCurrAdapter->PhysicalAddress[3],
                        pCurrAdapter->PhysicalAddress[4], pCurrAdapter->PhysicalAddress[5]);
 
-                // ±éÀúÊÊÅäÆ÷µÄ µ¥²¥µØÖ·
+                // éå†é€‚é…å™¨çš„ å•æ’­åœ°å€
                 PIP_ADAPTER_UNICAST_ADDRESS pUnicast = pCurrAdapter->FirstUnicastAddress;
                 while (pUnicast) {
                     char *unicast  = pUnicast->Address.lpSockaddr->sa_data;
@@ -72,7 +72,7 @@ int infoOfAdaptersAddresses() {
                     pUnicast = pUnicast->Next;
                 }
 
-                // ±éÀúÊÊÅäÆ÷µÄÍø¹ØµØÖ·
+                // éå†é€‚é…å™¨çš„ç½‘å…³åœ°å€
                 PIP_ADAPTER_GATEWAY_ADDRESS_LH pGateway = pCurrAdapter->FirstGatewayAddress;
                 while (pGateway) {
                     char *gateway = pGateway->Address.lpSockaddr->sa_data;
@@ -81,7 +81,7 @@ int infoOfAdaptersAddresses() {
                     pGateway = pCurrAdapter->FirstGatewayAddress;
                 }
 
-                // ±éÀúÊÊÅäÆ÷µÄ DNS ·şÎñÆ÷µØÖ·
+                // éå†é€‚é…å™¨çš„ DNS æœåŠ¡å™¨åœ°å€
                 PIP_ADAPTER_DNS_SERVER_ADDRESS pDnsServer = pCurrAdapter->FirstDnsServerAddress;
                 while (pDnsServer) {
                     char * dns_svr = pDnsServer->Address.lpSockaddr->sa_data;

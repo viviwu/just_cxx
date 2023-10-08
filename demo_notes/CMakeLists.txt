@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.1)
 
 project(just_cxx)
 
-# Ìí¼ÓC++11Ö§³Ö
+# æ·»åŠ C++11æ”¯æŒ
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -11,9 +11,9 @@ set(EXECUTABLE_OUTPUT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/bin)
 
 include_directories(./)
 
-add_executable(playground base/playground.cpp)
+add_executable(playground "playground/access_control.cpp")
 
-# Ìí¼Ó¿ÉÖ´ĞĞÎÄ¼ş
+# æ·»åŠ å¯æ‰§è¡Œæ–‡ä»¶
 if(false)
 add_executable(std_thread multi_threads/std_thread.cpp)
 add_executable(mutex_lock multi_threads/thread_lock.cpp)
@@ -21,9 +21,9 @@ add_executable(recursive_mutex multi_threads/recursive_mutex.cpp)
 add_executable(condition_variable multi_threads/condition_variable.cpp)
 add_executable(read_write_lock multi_threads/read_write_lock.cpp)
 add_executable(atomic_var multi_threads/atomic_var.cpp)
-# ²éÕÒÏß³Ì¿â
+# æŸ¥æ‰¾çº¿ç¨‹åº“
 find_package(Threads REQUIRED)
-# Á´½ÓÏß³Ì¿â
+# é“¾æ¥çº¿ç¨‹åº“
 target_link_libraries(std_thread PRIVATE Threads::Threads)
 
 

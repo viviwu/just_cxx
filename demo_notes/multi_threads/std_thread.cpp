@@ -5,14 +5,14 @@
 
 using namespace std;
 
-// ¶¨ÒåÏß³Ìº¯Êý
+// å®šä¹‰çº¿ç¨‹å‡½æ•°
 void thread_func(int id)
 {
     cout << "Thread " << id << " started." << endl;
-    // Ïß³ÌÖ´ÐÐÒ»Ð©²Ù×÷
+    // çº¿ç¨‹æ‰§è¡Œä¸€äº›æ“ä½œ
     for(int i=0; i<5; i++) {
         cout << "Thread " << id << " is working." << endl;
-        // ÐÝÃß1Ãë
+        // ä¼‘çœ 1ç§’
         this_thread::sleep_for(chrono::seconds(1));
     }
     cout << "Thread " << id << " finished." << endl;
@@ -20,13 +20,13 @@ void thread_func(int id)
 
 int main()
 {
-    // ´´½¨10¸öÏß³Ì
+    // åˆ›å»º10ä¸ªçº¿ç¨‹
     vector<thread> threads;
     for(int i=0; i<10; i++) {
         threads.emplace_back(thread_func, i);
     }
 
-    // µÈ´ýËùÓÐÏß³Ì½áÊø
+    // ç­‰å¾…æ‰€æœ‰çº¿ç¨‹ç»“æŸ
     for(auto& t : threads) {
         t.join();
     }

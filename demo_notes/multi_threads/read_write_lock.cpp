@@ -6,56 +6,56 @@
 #include <thread>
 #include <shared_mutex>
 
-std::shared_mutex rw_mutex;  // ¶ÁĞ´Ëø
+std::shared_mutex rw_mutex;  // è¯»å†™é”
 
-int data = 0;  // ¹²ÏíÊı¾İ
+int data = 0;  // å…±äº«æ•°æ®
 
 void writer() {
     for (int i = 0; i < 5; i++) {
-        // »ñÈ¡Ğ´Ëø
+        // è·å–å†™é”
         std::unique_lock<std::shared_mutex> lock(rw_mutex);
 
-        // Ğ´Èë¹²ÏíÊı¾İ
+        // å†™å…¥å…±äº«æ•°æ®
         data++;
 
-        // Êä³öĞ´ÈëµÄÖµ
+        // è¾“å‡ºå†™å…¥çš„å€¼
         std::cout << "writer thread: " << std::this_thread::get_id() << " write data: " << data << std::endl;
 
-        // ÊÍ·ÅĞ´Ëø
+        // é‡Šæ”¾å†™é”
         lock.unlock();
 
-        // µÈ´ıÒ»¶ÎÊ±¼ä
+        // ç­‰å¾…ä¸€æ®µæ—¶é—´
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 }
 
 void reader() {
     for (int i = 0; i < 5; i++) {
-        // »ñÈ¡¶ÁËø
+        // è·å–è¯»é”
         std::shared_lock<std::shared_mutex> lock(rw_mutex);
 
-        // ¶ÁÈ¡¹²ÏíÊı¾İ
+        // è¯»å–å…±äº«æ•°æ®
         int value = data;
 
-        // Êä³ö¶ÁÈ¡µÄÖµ
+        // è¾“å‡ºè¯»å–çš„å€¼
         std::cout << "reader thread: " << std::this_thread::get_id() << " read data: " << value << std::endl;
 
-        // ÊÍ·Å¶ÁËø
+        // é‡Šæ”¾è¯»é”
         lock.unlock();
 
-        // µÈ´ıÒ»¶ÎÊ±¼ä
+        // ç­‰å¾…ä¸€æ®µæ—¶é—´
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 }
 
 int main() {
-    // ´´½¨ 3 ¸ö¶ÁÏß³ÌºÍ 1 ¸öĞ´Ïß³Ì
+    // åˆ›å»º 3 ä¸ªè¯»çº¿ç¨‹å’Œ 1 ä¸ªå†™çº¿ç¨‹
     std::thread t1(reader);
     std::thread t2(writer);
     std::thread t3(reader);
     std::thread t4(reader);
 
-    // µÈ´ıÏß³Ì½áÊø
+    // ç­‰å¾…çº¿ç¨‹ç»“æŸ
     t1.join();
     t2.join();
     t3.join();

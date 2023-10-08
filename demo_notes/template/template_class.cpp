@@ -5,7 +5,7 @@
 
 using namespace std;
 
-// 定义一个类模板
+// 瀹氫箟涓�涓被妯℃澘
 template<typename T>
 class Stack {
 private:
@@ -39,7 +39,7 @@ public:
 };
 
 int main() {
-    // 实例化类模板
+    // 瀹炰緥鍖栫被妯℃澘
     Stack<int> intStack(10);
     intStack.push(5);
     intStack.push(10);

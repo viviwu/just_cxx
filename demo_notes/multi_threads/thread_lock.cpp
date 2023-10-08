@@ -8,44 +8,44 @@
 
 using namespace std;
 
-// ¹²Ïí×ÊÔ´
+// å…±äº«èµ„æº
 int counter = 0;
 
-// »¥³âËø
+// äº’æ–¥é”
 mutex mtx;
 
-// µÚÒ»¸öÏß³ÌµÄº¯Êı
+// ç¬¬ä¸€ä¸ªçº¿ç¨‹çš„å‡½æ•°
 void threadFunction1() {
     for (int i = 0; i < 1000000; ++i) {
-        // ¼ÓËø
+        // åŠ é”
         mtx.lock();
         counter++;
-        // ½âËø
+        // è§£é”
         mtx.unlock();
     }
 }
 
-// µÚ¶ş¸öÏß³ÌµÄº¯Êı
+// ç¬¬äºŒä¸ªçº¿ç¨‹çš„å‡½æ•°
 void threadFunction2() {
     for (int i = 0; i < 1000000; ++i) {
-        // ¼ÓËø
+        // åŠ é”
         mtx.lock();
         counter--;
-        // ½âËø
+        // è§£é”
         mtx.unlock();
     }
 }
 
 int main() {
-    // ´´½¨Á½¸öÏß³Ì
+    // åˆ›å»ºä¸¤ä¸ªçº¿ç¨‹
     thread t1(threadFunction1);
     thread t2(threadFunction2);
 
-    // µÈ´ıÁ½¸öÏß³ÌÍê³É
+    // ç­‰å¾…ä¸¤ä¸ªçº¿ç¨‹å®Œæˆ
     t1.join();
     t2.join();
 
-    // Êä³ö¹²Ïí×ÊÔ´µÄÖµ
+    // è¾“å‡ºå…±äº«èµ„æºçš„å€¼
     cout << "Counter = " << counter << endl;
 
     return 0;

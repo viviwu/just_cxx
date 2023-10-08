@@ -58,11 +58,11 @@ int main()
 }
 
 /*
-ÔÚÕâ¸öÊ¾ÀıÖĞ£¬IMNode ¼Ì³Ğ×Ô std::enable_shared_from_this<IMNode>£¬ÕâÒâÎ¶×Å IMNode µÄÊµÀı¿ÉÒÔÍ¨¹ı shared_from_this() º¯Êı·µ»ØÒ»¸ö std::shared_ptr ¶ÔÏó£¬Õâ¸ö std::shared_ptr ¶ÔÏóÓë IMNode µÄÊµÀı¹²ÏíËùÓĞÈ¨¡£
+åœ¨è¿™ä¸ªç¤ºä¾‹ä¸­ï¼ŒIMNode ç»§æ‰¿è‡ª std::enable_shared_from_this<IMNode>ï¼Œè¿™æ„å‘³ç€ IMNode çš„å®ä¾‹å¯ä»¥é€šè¿‡ shared_from_this() å‡½æ•°è¿”å›ä¸€ä¸ª std::shared_ptr å¯¹è±¡ï¼Œè¿™ä¸ª std::shared_ptr å¯¹è±¡ä¸ IMNode çš„å®ä¾‹å…±äº«æ‰€æœ‰æƒã€‚
 
-ÔÚ IMNode::getShared() º¯ÊıÖĞ£¬µ÷ÓÃ shared_from_this() º¯Êı·µ»ØÒ»¸ö std::shared_ptr ¶ÔÏó£¬Õâ¸ö std::shared_ptr ¶ÔÏóÓë p1 ¹²Ïí IMNode µÄËùÓĞÈ¨¡£
+åœ¨ IMNode::getShared() å‡½æ•°ä¸­ï¼Œè°ƒç”¨ shared_from_this() å‡½æ•°è¿”å›ä¸€ä¸ª std::shared_ptr å¯¹è±¡ï¼Œè¿™ä¸ª std::shared_ptr å¯¹è±¡ä¸ p1 å…±äº« IMNode çš„æ‰€æœ‰æƒã€‚
 
-ĞèÒª×¢ÒâµÄÊÇ£¬ÎªÁËÊ¹ÓÃ std::enable_shared_from_this£¬±ØĞëÊ¹ÓÃ std::shared_ptr ¶ÔÏóÀ´¹ÜÀí IMNode µÄÊµÀı¡£Èç¹ûÊ¹ÓÃÆäËûÀàĞÍµÄÖÇÄÜÖ¸Õë£¬Èç std::unique_ptr£¬½«ÎŞ·¨Ê¹ÓÃ std::enable_shared_from_this¡£
+éœ€è¦æ³¨æ„çš„æ˜¯ï¼Œä¸ºäº†ä½¿ç”¨ std::enable_shared_from_thisï¼Œå¿…é¡»ä½¿ç”¨ std::shared_ptr å¯¹è±¡æ¥ç®¡ç† IMNode çš„å®ä¾‹ã€‚å¦‚æœä½¿ç”¨å…¶ä»–ç±»å‹çš„æ™ºèƒ½æŒ‡é’ˆï¼Œå¦‚ std::unique_ptrï¼Œå°†æ— æ³•ä½¿ç”¨ std::enable_shared_from_thisã€‚
 
-Ê¹ÓÃ std::enable_shared_from_this ¿ÉÒÔ±ÜÃâÔÚÀàÖĞÏÔÊ½´«µİ std::shared_ptr ¶ÔÏóµÄÂé·³£¬Ê¹´úÂë¸ü¼Ó¼ò½àÒ×¶Á¡£µ«ĞèÒª×¢ÒâµÄÊÇ£¬Ê¹ÓÃ std::enable_shared_from_this Ê±£¬±ØĞëÒª±£Ö¤¸ÃÀàÊ¼ÖÕÊÇ±» std::shared_ptr ¶ÔÏóËù¹ÜÀí£¬·ñÔò»áµ¼ÖÂÎ´¶¨ÒåµÄĞĞÎª¡£
+ä½¿ç”¨ std::enable_shared_from_this å¯ä»¥é¿å…åœ¨ç±»ä¸­æ˜¾å¼ä¼ é€’ std::shared_ptr å¯¹è±¡çš„éº»çƒ¦ï¼Œä½¿ä»£ç æ›´åŠ ç®€æ´æ˜“è¯»ã€‚ä½†éœ€è¦æ³¨æ„çš„æ˜¯ï¼Œä½¿ç”¨ std::enable_shared_from_this æ—¶ï¼Œå¿…é¡»è¦ä¿è¯è¯¥ç±»å§‹ç»ˆæ˜¯è¢« std::shared_ptr å¯¹è±¡æ‰€ç®¡ç†ï¼Œå¦åˆ™ä¼šå¯¼è‡´æœªå®šä¹‰çš„è¡Œä¸ºã€‚
  */
