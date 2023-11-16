@@ -15,8 +15,9 @@ include_directories(
 )
 # 添加生成动态库的目标
 add_library(static_sdk_api  STATIC
-         src/sdk_api.cpp
-        )
+            src/sdk_api.cpp
+            src/xutils.cpp
+)
 #target_include_directories(sdk_api PUBLIC  include)
 # 对static_sdk_api的重名为sdk_api
 SET_TARGET_PROPERTIES(static_sdk_api PROPERTIES OUTPUT_NAME "sdk_api")
@@ -25,7 +26,7 @@ SET_TARGET_PROPERTIES(static_sdk_api PROPERTIES CLEAN_DIRECT_OUTPUT 1)
 
 add_library(dynamic_sdk_api SHARED
         ${CMAKE_CURRENT_SOURCE_DIR}/src/sdk_api.cpp
-        )
+        src/xutils.cpp include/xutils.h)
 # 对static_sdk_api的重名为sdk_api
 SET_TARGET_PROPERTIES(dynamic_sdk_api PROPERTIES  OUTPUT_NAME "sdk_api")
 SET_TARGET_PROPERTIES(dynamic_sdk_api PROPERTIES CLEAN_DIRECT_OUTPUT 1)
@@ -68,8 +69,13 @@ install(TARGETS static_sdk_api  dynamic_sdk_api sdk_tester
         PRIVATE_HEADER	DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
         )
 
+# 所有 .h 文件将被复制到 "include" 目录，但 "internal" 目录将被排除
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/include
+        DESTINATION .
+        FILES_MATCHING PATTERN "*.h"    # PATTERN "*.hpp"
+        PATTERN "internal" EXCLUDE)     # EXCLUDE PATTERN "internal/*"
+# install(DIRECTORY  include DESTINATION .)
 # 安装配置文件和README文件
-install(DIRECTORY  include DESTINATION .)
 install(DIRECTORY  config DESTINATION share)
 install(FILES README.md DESTINATION share)
 
@@ -95,9 +101,34 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/SdkApiConfig.cmake
 #在安装期间执行指定的脚本。
 #install(SCRIPT /path/to/script)
 
+#PROGRAMS：安装可执行文件到指定目录。
+#install(PROGRAMS /path/to/executable DESTINATION /path/to/destination)
+
 #RUNTIME_DEPENDENCY_SET：将指定目标的运行时依赖项作为依赖项集合进行安装。
-#install(RUNTIME_DEPENDENCY_SET my_target_deps DESTINATION /path/to/destination)
+#install(RUNTIME_DEPENDENCY_SET sdk_tester DESTINATION ${CMAKE_INSTALL_BINDIR})
+
 
 install(CODE "message(STATUS 'Installing...')")
 # 打印安装路径
 message(STATUS "Install path: ${CMAKE_INSTALL_PREFIX}")
+
+
+#if(${COMPILER_ARCH} STREQUAL "AARCH64")
+#    install(DIRECTORY ${CMAKE_SOURCE_DIR}/src/module/
+#            DESTINATION ${CMAKE_SOURCE_DIR}/Release/include/aarch64-journey
+#            FILES_MATCHING PATTERN "*.h")
+#elseif(${COMPILER_ARCH} STREQUAL "X86_64")
+#    install(DIRECTORY ${CMAKE_SOURCE_DIR}/src/module/
+#            DESTINATION ${CMAKE_SOURCE_DIR}/Release/include/ubuntu
+#            FILES_MATCHING PATTERN "*.h")
+#endif()
+
+#if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+#    # Linux 平台的安装规则 (Installation rules for Linux)
+#    install(TARGETS myapp RUNTIME DESTINATION bin/linux)
+#    install(FILES config_linux.conf DESTINATION etc)
+#elseif(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+#    # Windows 平台的安装规则 (Installation rules for Windows)
+#    install(TARGETS myapp RUNTIME DESTINATION bin/windows)
+#    install(FILES config_windows.conf DESTINATION etc)
+#endif()

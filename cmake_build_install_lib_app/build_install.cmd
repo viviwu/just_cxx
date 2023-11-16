@@ -23,12 +23,9 @@ cmake -DCMAKE_BUILD_TYPE=Release "%PROJECT_DIR%"
 REM 编译项目并将日志保存到文件
 echo 编译项目...
 cmake --build .  --config Release 
- 
-REM 安装项目到指定目录
-cmake --install %BUILD_PATH% --prefix "%PROJECT_PATH%\install"
 
-REM 清理构建目录
-cd %PROJECT_PATH%
+REM 安装项目到指定目录
+cmake --install %BUILD_PATH%
 
 REM 退出构建目录
 popd
