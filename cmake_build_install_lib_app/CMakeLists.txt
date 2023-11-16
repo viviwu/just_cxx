@@ -8,6 +8,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 message(STATUS "CMAKE_SOURCE_DIR: ${CMAKE_SOURCE_DIR}")
 
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/install/test")
+
 include_directories(
         include
 )
@@ -81,7 +83,7 @@ install(EXPORT SdkApiTargets
 # 创建并安装配置文件
 include(CMakePackageConfigHelpers)
 configure_package_config_file(
-        SdkApiConfig.cmake.in
+        config/SdkApiConfig.cmake.in
         ${CMAKE_CURRENT_BINARY_DIR}/SdkApiConfig.cmake
         INSTALL_DESTINATION lib/cmake/SdkApi
 )
