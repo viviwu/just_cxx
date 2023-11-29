@@ -13,34 +13,13 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/install/test")
 include_directories(
         include
 )
-# 添加生成动态库的目标
-add_library(static_sdk_api  STATIC
-            src/sdk_api.cpp
-            src/xutils.cpp
-)
-#target_include_directories(sdk_api PUBLIC  include)
-# 对static_sdk_api的重名为sdk_api
-SET_TARGET_PROPERTIES(static_sdk_api PROPERTIES OUTPUT_NAME "sdk_api")
-# cmake 在构建一个新的target 时，会尝试清理掉其他使用这个名字的库，如果没有清理还是会只会构建一个动态库，不会构建出静态库
-SET_TARGET_PROPERTIES(static_sdk_api PROPERTIES CLEAN_DIRECT_OUTPUT 1)
 
-add_library(dynamic_sdk_api SHARED
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/sdk_api.cpp
-        src/xutils.cpp include/xutils.h)
-# 对static_sdk_api的重名为sdk_api
-SET_TARGET_PROPERTIES(dynamic_sdk_api PROPERTIES  OUTPUT_NAME "sdk_api")
-SET_TARGET_PROPERTIES(dynamic_sdk_api PROPERTIES CLEAN_DIRECT_OUTPUT 1)
-SET_TARGET_PROPERTIES(dynamic_sdk_api PROPERTIES VERSION 1.2 SOVERSION 1)
+set(TARGET_LIB_NAME static_sdk_api)
+set(TARGET_DYLIB_NAME dynamic_sdk_api)
 
-#target_include_directories(sdk_api PUBLIC  include)
-#add_library(bar STATIC IMPORTED)
-#set_property()、
-#target_link_libraries(INTERFACE)、
-#target_link_options(INTERFACE)、
-#target_include_directories(INTERFACE)、
-#target_compile_options(INTERFACE)、
-#target_compile_definitions(INTERFACE)
-#target_sources(INTERFACE)。
+configure_file(config/SdkApi.cmake.in config/SdkApi.cmake @ONLY)
+
+include(${CMAKE_CURRENT_BINARY_DIR}/config/SdkApi.cmake)
 
 # 添加生成可执行文件的目标
 add_executable(sdk_tester
@@ -50,7 +29,7 @@ add_executable(sdk_tester
 set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}/install")
 
 # 链接可执行文件与静态库、动态库
-target_link_libraries(sdk_tester static_sdk_api )
+target_link_libraries(sdk_tester ${TARGET_LIB_NAME})
 # INTERFACE_INCLUDE_DIRECTORIES  让它明白当从构建目录内使用和从安装/包中使用时，需要不同的 INTERFACE 位置。
 target_include_directories(sdk_tester
         INTERFACE
@@ -132,3 +111,5 @@ message(STATUS "Install path: ${CMAKE_INSTALL_PREFIX}")
 #    install(TARGETS myapp RUNTIME DESTINATION bin/windows)
 #    install(FILES config_windows.conf DESTINATION etc)
 #endif()
+
+message(STATUS "CMAKE_INSTALL_PREFIX:${CMAKE_INSTALL_PREFIX}")

@@ -60,7 +60,7 @@ add_library(SdkApi::dynamic_sdk_api SHARED IMPORTED)
 add_executable(SdkApi::sdk_tester IMPORTED)
 
 set_target_properties(SdkApi::sdk_tester PROPERTIES
-  INTERFACE_INCLUDE_DIRECTORIES "F:/Worksapce/CXX/just_cxx/cmake_build_install_lib_app/install/include"
+  INTERFACE_INCLUDE_DIRECTORIES "/Users/wuxw/Workspace/just_cxx/cmake_build_install_lib_app/install/include"
 )
 
 # Load information for each installed configuration.

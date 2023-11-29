@@ -1,0 +1,48 @@
+# 自定义的配置脚本
+
+# 设置编译选项
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall")
+
+# 添加自定义库的构建MyLibrary
+###################################################
+# 添加生成动态库的目标
+add_library(@TARGET_LIB_NAME@  STATIC
+        src/sdk_api.cpp
+        src/xutils.cpp
+)
+
+# 指定库的输出目录
+set_target_properties(@TARGET_LIB_NAME@ PROPERTIES
+        ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
+        LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib"
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+)
+#target_include_directories(sdk_api PUBLIC  include)
+# 对@TARGET_LIB_NAME@的重名为sdk_api
+SET_TARGET_PROPERTIES(@TARGET_LIB_NAME@ PROPERTIES OUTPUT_NAME "sdk_api")
+# cmake 在构建一个新的target 时，会尝试清理掉其他使用这个名字的库，如果没有清理还是会只会构建一个动态库，不会构建出静态库
+SET_TARGET_PROPERTIES(@TARGET_LIB_NAME@ PROPERTIES CLEAN_DIRECT_OUTPUT 1)
+
+###################################################
+add_library(@TARGET_DYLIB_NAME@ SHARED
+        src/sdk_api.cpp
+        src/xutils.cpp
+        include/xutils.h)
+# 对@TARGET_LIB_NAME@的重名为sdk_api
+SET_TARGET_PROPERTIES(@TARGET_DYLIB_NAME@ PROPERTIES  OUTPUT_NAME "sdk_api")
+SET_TARGET_PROPERTIES(@TARGET_DYLIB_NAME@ PROPERTIES CLEAN_DIRECT_OUTPUT 1)
+SET_TARGET_PROPERTIES(@TARGET_DYLIB_NAME@ PROPERTIES VERSION 1.2 SOVERSION 1)
+
+
+#target_include_directories(sdk_api PUBLIC  include)
+#add_library(bar STATIC IMPORTED)
+#set_property()、
+#target_link_libraries(INTERFACE)、
+#target_link_options(INTERFACE)、
+#target_include_directories(INTERFACE)、
+#target_compile_options(INTERFACE)、
+#target_compile_definitions(INTERFACE)
+#target_sources(INTERFACE)。
+
+
+message(STATUS "### CMAKE_INSTALL_PREFIX: ${CMAKE_INSTALL_PREFIX}")
