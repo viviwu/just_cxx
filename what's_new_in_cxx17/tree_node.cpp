@@ -1,0 +1,204 @@
+/**
+ ******************************************************************************
+ * @file           : tree_node.cpp.c
+ * @author         : vivi wu
+ * @brief          : None
+ * @attention      : None
+ * @date           : 2023/12/8
+ ******************************************************************************
+ */
+#include <iostream>
+#include <vector>
+#include <memory>
+
+class TreeNode : public std::enable_shared_from_this<TreeNode> {
+public:
+    struct NodeCoordinate {
+        int depth;
+        int breadth;
+    };
+
+    TreeNode(int value) : value(value), coordinate({0, 0}) {}
+
+    void addChild(std::shared_ptr<TreeNode> child) {
+        children.push_back(child);
+        child->setParent(shared_from_this());
+        updateChildCoordinates();
+    }
+
+    void removeChild(std::shared_ptr<TreeNode> child) {
+        auto it = std::find(children.begin(), children.end(), child);
+        if (it != children.end()) {
+            children.erase(it);
+            child->resetParent();
+            updateChildCoordinates();
+        }
+    }
+
+    std::shared_ptr<TreeNode> getChild(int index) const {
+        if (index >= 0 && index < children.size()) {
+            return children[index];
+        }
+        return nullptr;
+    }
+
+    std::shared_ptr<TreeNode> getParent() const {
+        return parent.lock();
+    }
+
+    void setParent(std::shared_ptr<TreeNode> p) {
+        parent = p;
+    }
+
+    void addSibling(std::shared_ptr<TreeNode> sibling) {
+        if (auto p = getParent()) {
+            p->addChild(sibling);
+        }
+    }
+
+    void removeSibling(std::shared_ptr<TreeNode> sibling) {
+        if (auto p = getParent()) {
+            p->removeChild(sibling);
+        }
+    }
+
+    std::shared_ptr<TreeNode> getSibling(int index) const {
+        if (auto p = getParent()) {
+            return p->getChild(index);
+        }
+        return nullptr;
+    }
+
+    int getValue() const {
+        return value;
+    }
+
+    bool isRoot() const {
+        return parent.expired();
+    }
+
+    NodeCoordinate getCoordinate() const {
+        return coordinate;
+    }
+
+    std::vector<NodeCoordinate> searchNodesByValue(int value) const {
+        std::vector<NodeCoordinate> result;
+        searchNodesByValueRecursive(shared_from_this(), value, result);
+        return result;
+    }
+
+private:
+    int value;
+    std::vector<std::shared_ptr<TreeNode>> children;
+    std::weak_ptr<TreeNode> parent;
+    NodeCoordinate coordinate;
+
+    void resetParent() {
+        parent.reset();
+    }
+
+    void searchNodesByValueRecursive(std::shared_ptr<const TreeNode> node, int value, std::vector<NodeCoordinate>& result) const {
+        if (node->getValue() == value) {
+            result.push_back(node->getCoordinate());
+        }
+
+        for (const auto& child : node->children) {
+            searchNodesByValueRecursive(child, value, result);
+        }
+    }
+
+    void updateChildCoordinates() {
+        int childDepth = coordinate.depth + 1;
+        int childBreadth = 0;
+        if (auto p = getParent()) {
+            int siblingIndex = 0;
+            for (const auto& sibling : p->children) {
+                if (sibling == shared_from_this()) {
+                    break;
+                }
+                childBreadth += getSubtreeSize(sibling);
+                siblingIndex++;
+            }
+            for (int i = 0; i < siblingIndex; ++i) {
+                if (auto sibling = p->getChild(i)) {
+                    childBreadth += countDescendantSubtrees(sibling);
+                }
+            }
+        }
+        for (const auto& child : children) {
+            child->coordinate = {childDepth, childBreadth};
+            childBreadth += countDescendantSubtrees(child) + 1;
+        }
+    }
+
+    int getSubtreeSize(std::shared_ptr<const TreeNode> node) const {
+        int size = 1;
+        for (const auto& child : node->children) {
+            size += getSubtreeSize(child);
+        }
+        return size;
+    }
+
+    int countDescendantSubtrees(std::shared_ptr<const TreeNode> node) const {
+        int count = 0;
+        for (const auto& child : node->children) {
+            count += getSubtreeSize(child);
+        }
+        return count;
+    }
+
+};
+
+
+int main_tree_node() {
+    auto root = std::make_shared<TreeNode>(1);
+    auto child1 = std::make_shared<TreeNode>(2);
+    auto child2 = std::make_shared<TreeNode>(3);
+    auto child3 = std::make_shared<TreeNode>(4);
+
+    root->addChild(child1);
+    root->addChild(child2);
+    root->addChild(child3);
+
+    std::cout << "Children of root: ";
+    for (int i = 0; i < 3; i++) {
+        auto child = root->getChild(i);
+        if (child) {
+            std::cout << child->getValue() << " ";
+        }
+    }
+    std::cout << std::endl;
+
+    auto sibling1 = std::make_shared<TreeNode>(5);
+    auto sibling2 = std::make_shared<TreeNode>(6);
+
+
+    child1->addSibling(sibling1);
+    child2->addSibling(sibling2);
+
+    auto grandson1 = std::make_shared<TreeNode>(7);
+    child1->addChild(grandson1);
+
+    auto grandson2 = std::make_shared<TreeNode>(8);
+    child2->addChild(grandson2);
+
+    std::cout << "Siblings of child1: ";
+    for (int i = 0; i < 2; i++) {
+        auto sibling = child1->getSibling(i);
+        if (sibling) {
+            std::cout << sibling->getValue() << " ";
+        }
+    }
+    std::cout << std::endl;
+
+    std::cout << "Is root a root node? " << (root->isRoot() ? "Yes" : "No") << std::endl;
+    std::cout << "Is child1 a root node? " << (child1->isRoot() ? "Yes" : "No") << std::endl;
+
+    auto result = root->searchNodesByValue(8);
+    std::cout << "Nodes with value 8:" << std::endl;
+    for (const auto& coordinate : result) {
+        std::cout << "Depth: " << coordinate.depth << ", Breadth: " << coordinate.breadth << std::endl;
+    }
+
+    return 0;
+}
