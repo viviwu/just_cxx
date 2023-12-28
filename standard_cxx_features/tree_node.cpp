@@ -11,6 +11,7 @@
 #include <iostream>
 #include <memory>
 #include <vector>
+
 #include "geometry.h"
 
 class TreeNode : public std::enable_shared_from_this<TreeNode> {
