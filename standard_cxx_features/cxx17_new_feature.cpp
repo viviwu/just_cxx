@@ -144,7 +144,7 @@ void optionalDemo() {
     }
 }
 
-int main_cxx17() {
+int main() {
     structuredBindingDemo();
     ifStatementInitializationDemo();
     bool result = allTrue(true, true, true);

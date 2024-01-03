@@ -146,7 +146,7 @@ private:
     }
 };
 
-int main_tree_node() {
+int main() {
     auto root = std::make_shared<TreeNode>(1);
     auto child1 = root->addChild(2);
     auto child2 = root->addChild(3);

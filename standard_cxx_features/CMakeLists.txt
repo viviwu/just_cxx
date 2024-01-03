@@ -1,23 +1,25 @@
 cmake_minimum_required(VERSION 3.17)
 project(standard_cxx_features VERSION "1.2.3" LANGUAGES CXX)
 
-# set c++ standard 17
-set(CMAKE_CXX_STANDARD 17)
+#set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_INSTALL_PREFIX "${CMAKE_CURRENT_SOURCE_DIR}")
 
 
-add_executable(${PROJECT_NAME}
-        main.cpp
-        geometry.h
-        cxx14_new_feature.cpp
-        some_cxx11_feature.cpp
-        tree_node.cpp
-        )
+add_executable(tree_node  tree_node.cpp )
 
-target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
+add_executable(smart_ptr smart_ptr.cpp )
+
+add_executable(cxx11_feature some_cxx11_feature.cpp )
+target_compile_features(cxx11_feature PRIVATE cxx_std_11)
+
+add_executable(cxx14_feature cxx14_new_feature.cpp )
+target_compile_features(cxx14_feature PRIVATE cxx_std_14)
+
+add_executable(cxx17_feature cxx17_new_feature.cpp )
+target_compile_features(cxx17_feature PRIVATE cxx_std_17)
 
 #message("C compiler: " ${CMAKE_C_COMPILER})
 #message("C compiler name: " ${CMAKE_C_COMPILER_ID})
