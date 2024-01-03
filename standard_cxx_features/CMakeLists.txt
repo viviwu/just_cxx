@@ -12,6 +12,9 @@ add_executable(tree_node  tree_node.cpp )
 
 add_executable(smart_ptr smart_ptr.cpp )
 
+add_executable(multi_threads multi_threads.cpp)
+target_compile_features(multi_threads PRIVATE cxx_std_11)
+
 add_executable(cxx11_feature some_cxx11_feature.cpp )
 target_compile_features(cxx11_feature PRIVATE cxx_std_11)
 

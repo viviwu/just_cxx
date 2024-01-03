@@ -5,11 +5,18 @@
 #include <iostream>
 #include <memory>
 
-class MyClass {
+class MyClass: public std::enable_shared_from_this<MyClass>  {
  public:
   MyClass() { std::cout << "Constructor called." << std::endl; }
 
   ~MyClass() { std::cout << "Destructor called." << std::endl; }
+
+  void doSomething() {
+    //enable_shared_from_this first
+    std::shared_ptr<MyClass> sharedPtr = shared_from_this();
+    std::cout << "Doing something with sharedPtr" << std::endl;
+    // 在这里可以安全地使用 sharedPtr，确保对象的有效性
+  }
 };
 
 void demoUniquePtr() {
@@ -39,6 +46,7 @@ void demoSharedPtr() {
 
   std::cout << "sharedPtr1 count: " << sharedPtr1.use_count() << std::endl;
   std::cout << "sharedPtr2 count: " << sharedPtr2.use_count() << std::endl;
+  sharedPtr2->doSomething();
 }
 
 void demoWeakPtr() {
@@ -54,6 +62,7 @@ void demoWeakPtr() {
     std::cout << "The observed object has been destroyed." << std::endl;
   } else {
     std::cout << "The observed object still exists." << std::endl;
+    weakPtr.lock()->doSomething();
   }
 
   // 使用 std::lock_weak
@@ -63,6 +72,23 @@ void demoWeakPtr() {
   } else {
     std::cout << "weakPtr is expired." << std::endl;
   }
+
+}
+
+void weak_ptr_lock() {
+  std::shared_ptr<int> sharedPtr(new int(42));
+  std::weak_ptr<int> weakPtr(sharedPtr);
+  std::cout << "std::weak_ptr lock() get():" <<*(weakPtr.lock().get())<< std::endl;
+  sharedPtr.reset();
+
+  std::shared_ptr<int> lockedPtr = weakPtr.lock();
+  if (lockedPtr) {
+    std::cout << "The observed object still exists." << std::endl;
+    std::cout << "Value: " << *lockedPtr << std::endl;
+  } else {
+    std::cout << "The observed object has been destroyed." << std::endl;
+  }
+
 }
 
 int main() {
@@ -74,6 +100,8 @@ int main() {
 
   demoWeakPtr();
   std::cout << std::endl;
+
+  weak_ptr_lock();
 
   return 0;
 }
