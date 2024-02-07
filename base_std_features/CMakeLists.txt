@@ -8,20 +8,16 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(LIBRARY_OUTPUT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/lib)
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/bin)
 
-include_directories(./)
+#add_subdirectory(playground)
+#add_subdirectory(std_algorithm)
+#add_subdirectory(regex_pattern)
+add_subdirectory(smart_ptr)
+#add_subdirectory(template)
+#add_subdirectory(multi_threads)
+#add_subdirectory(io)
+#add_subdirectory(exception)
 
 #aux_source_directory(./exception base_std_features)
-
-add_executable(catch_throw exception/catch_throw.cpp)
-
-file(GLOB files RELATIVE ${CMAKE_SOURCE_DIR} "*")
-
-list(FILTER all_files EXCLUDE REGEX "^{cmake5*}")
-
-message("files in ${CMAKE_SOURCE_DIR}：")
-foreach(file ${files})
-    message("${file}")
-endforeach()
 
 #add_executable(playground "playground/access_control.cpp")#
 ## 添加可执行文件
