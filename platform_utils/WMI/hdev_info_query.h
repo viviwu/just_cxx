@@ -36,7 +36,7 @@ MSN：splashcn@msn.com
 ------------------------------------------------------------ */
 #pragma once
 
-#include <windows.h>
+#include <Windows.h>
 
 #ifndef MACRO_T_DEVICE_PROPERTY
 	#define MACRO_T_DEVICE_PROPERTY

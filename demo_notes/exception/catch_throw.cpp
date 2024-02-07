@@ -9,7 +9,7 @@ double divide(double x, double y)
 {
     if (y == 0)
     {
-        throw "Divide by zero exception!";
+        throw "exception: Divide by zero !!";
     }
     return x / y;
 }

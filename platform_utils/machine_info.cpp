@@ -3,11 +3,10 @@
 //
 #ifdef _WIN32
 // Windows-specific code
-#include <winsock2.h>  // forward declaration
-#include <iomanip>
+#include <WinSock2.h>  // forward declaration
+#include <Windows.h>
 #include <iphlpapi.h>
-#include <windows.h>
-
+#include <iomanip>
 
 #elif __APPLE__
 // macOS-specific code

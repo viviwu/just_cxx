@@ -1,12 +1,12 @@
 #include "hdev_info_query.h"
 //#include "UnmanagedCode.h"
-#include <comutil.h>
-#include <Wbemidl.h>
-#include <tchar.h>
-#include <strsafe.h>
-#include <algorithm>
+#include <WbemIdl.h>
 #include <atlconv.h>
+#include <comutil.h>
 #include <ntddndis.h>
+#include <strsafe.h>
+#include <tchar.h>
+#include <algorithm>
 #include <iostream>
 
 using namespace std;
