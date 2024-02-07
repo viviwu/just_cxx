@@ -5,21 +5,16 @@
 
 #include <iostream>
 
-using namespace std;
-
-// 定义一个函数模板
 template <typename T>
-T max(T x, T y) {
-    return (x > y) ? x : y;
+T myMax(T a, T b) {
+  return a > b ? a : b;
 }
 
 int main() {
-    // 实例化函数模板
-    int a = 5, b = 10;
-    cout << "Max of " << a << " and " << b << " is " << max(a, b) << endl;
 
-    double c = 3.14, d = 2.71;
-    cout << "Max of " << c << " and " << d << " is " << max(c, d) << endl;
+  std::cout << "Max of 5 and 10: " << myMax<int>(5, 10) << std::endl;
+  std::cout << "Max of 3.14 and 2.71: " << myMax<double>(3.14, 2.71) << std::endl;
+  std::cout << "Max of 'A' and 'Z': " << myMax<char>('A', 'Z') << std::endl;
 
-    return 0;
+  return 0;
 }

@@ -5,7 +5,33 @@
 #include <iostream>
 #include <cmath>
 #include <complex>
+
+#include <iostream>
+#include <cstring>
 using namespace std;
+
+// 通用模板实现
+template <typename T>
+void print_array(T arr[], int size)
+{
+  for (int i = 0; i < size; i++)
+  {
+    cout << arr[i] << " ";
+  }
+  cout << endl;
+}
+
+// 指针类型的偏特化实现
+template <typename T>
+void print_array(T* arr[], int size)
+{
+  for (int i = 0; i < size; i++)
+  {
+    cout << *arr[i] << " ";
+  }
+  cout << endl;
+}
+
 
 // 通用模板实现
 template <typename T>
@@ -17,6 +43,8 @@ T square_root(T x)
 // 复数类型的模板特化实现
 template <>
 complex<double> square_root(complex<double> x)
+
+
 {
     double real = x.real();
     double imag = x.imag();
@@ -25,8 +53,19 @@ complex<double> square_root(complex<double> x)
     return complex<double>(sqrt(r) * cos(theta / 2), sqrt(r) * sin(theta / 2));
 }
 
+
 int main()
 {
+  // 测试通用模板实现
+  int arr1[] = {1, 2, 3};
+  print_array(arr1, 3); // 输出1 2 3
+
+  // 测试针对指针类型的偏特化实现
+  string* arr2[] = {"hello", "world", "!"};
+  print_array(arr2, 3); // 输出hello world !
+
+  /*****************************************/
+
     // 测试通用模板实现
     cout << square_root(4) << endl; // 输出2
     cout << square_root(2.25) << endl; // 输出1.5
