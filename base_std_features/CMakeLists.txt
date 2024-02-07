@@ -10,7 +10,7 @@ set(EXECUTABLE_OUTPUT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/bin)
 
 include_directories(./)
 
-#aux_source_directory(./exception std_features)
+#aux_source_directory(./exception base_std_features)
 
 add_executable(catch_throw exception/catch_throw.cpp)
 
