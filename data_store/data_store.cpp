@@ -16,7 +16,7 @@ DataStore::~DataStore() {
   std::cout << __func__ << std::endl;
 }
 
-bool DataStore::initStore(const char *db_path) {
+int DataStore::initStore(const char *db_path) {
   if (strlen(db_path)<1){
     std::cerr << "Invalid file path: "<< db_path << std::endl;
     return -1;
@@ -38,10 +38,11 @@ bool DataStore::initStore(const char *db_path) {
 
   if (!site_store_.initStore(&db_))
     return -3;
+  return 0;
 }
 
 
-int DataStore::PersistSync(const SvrSitePtr site){
+long long DataStore::PersistSync(const SvrSitePtr site){
   std::unique_lock<std::mutex> lock(db_mutex_);
   // Persist all data in a transaction
   return site_store_.createRecord(site);

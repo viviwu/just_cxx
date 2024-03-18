@@ -8,15 +8,15 @@ bool SiteStore::initStore(sqlite3pp::database* db) {
   db_ = db;
   try{
     db_->execute("CREATE TABLE IF NOT EXISTS svr_info (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, address TEXT, port INTEGER, protocol TEXT, addr_type TEXT)");
-  }catch (std::exception& e) {
-    std::cerr<<"Failed to create order table, ex: "<<std::endl;
+  }catch (std::exception& ex) {
+    std::cerr<<"Failed to create order table, ex: "<<ex.what()<<std::endl;
     return false;
   }
-  std::cout<<"Succeed to initialize order store!"<<std::endl;
+  std::cout<<"Succeed to initialize site store!"<<std::endl;
   return true;
 }
 
-int SiteStore::createRecord(const SvrSitePtr info) {
+long long SiteStore::createRecord(const SvrSitePtr info) {
   sqlite3pp::transaction xact(*db_);
   try {
     sqlite3pp::command cmd(*db_, "INSERT INTO svr_info (name, address, port, protocol, addr_type) VALUES (?, ?, ?, ?, ?)");
@@ -35,7 +35,7 @@ int SiteStore::createRecord(const SvrSitePtr info) {
     }
     return id;
   } catch (std::exception& ex) {
-    std::cerr<<"Failed to persist order:"<<info->name<<" exception:"<< ex.what();
+    std::cerr<<"Failed to persist record:"<<info->name<<" exception:"<< ex.what();
     xact.rollback();
     return -1;
   }
@@ -47,7 +47,6 @@ void SiteStore::getAllRecords(SvrSites *sites) {
     auto info = std::make_shared<SvrSite>();
     row.getter() >> info->id >> info->name >> info->address >> info->port >> info->protocol >> info->addr_type;
     sites->emplace_back(info);
-//    std::cout<<info->name<<info->address<<info->port<<info->protocol<<std::endl;
   }
 }
 
@@ -65,8 +64,9 @@ bool SiteStore::updateRecord(const SvrSitePtr info) {
     cmd.execute();
     xact.commit();
     return true;
-  } catch (std::exception& e) {
+  } catch (std::exception& ex) {
     xact.rollback();
+    std::cerr<<"Failed to update record:"<<info->name<<" exception:"<< ex.what();
     return false;
   }
 }
@@ -79,8 +79,9 @@ bool SiteStore::deleteRecord(int id) {
     cmd.execute();
     xact.commit();
     return true;
-  } catch (std::exception& e) {
+  } catch (std::exception& ex) {
     xact.rollback();
+      std::cerr<<"Failed to delete record:"<<id<<" exception:"<< ex.what();
     return false;
   }
 }

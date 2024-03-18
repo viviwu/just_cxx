@@ -21,12 +21,12 @@ class DataStore {
   /** @brief Destructor */
   ~DataStore();
 
-  bool initStore(const char *db_path="");
+  int initStore(const char *db_path="");
 
   /**
      * @brief Persist SvrSite sync
      */
-  int PersistSync(const SvrSitePtr site);
+  long long PersistSync(const SvrSitePtr site);
 
   bool UpdateSync(const SvrSitePtr site);
 

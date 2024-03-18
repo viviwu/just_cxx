@@ -16,10 +16,10 @@ class SiteStore {
 
  public:
   // Initialize
-  bool initStore(sqlite3pp::database* db);
+  int initStore(sqlite3pp::database* db);
 
 
-  int createRecord(const SvrSitePtr site);
+  long long createRecord(const SvrSitePtr site);
 
   void getAllRecords(SvrSites *sites);
 
