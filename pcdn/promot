@@ -1,0 +1,16 @@
+Use c or c++ posix to write A set of c/s services, and simply demonstrate the principle of pcdn service and sockets:
+Basic principle: When a client (Terminal) A needs to communicate with another client B, it first queries the IP address of the target client B from the server tracker;
+Then directly establish a connection with the target client B to transmit data and send messages.
+Tracker(Central service): Manages and maintains all terminal information (mainly ID and IP mappings);When a terminal connects to the Tracker, the Tracker automatically records the ID and IP address of the client.
+Terminal(Client application): can be connected to other terminals . Each terminal has its own ID.
+Terminal provides the following command menu options for users:
+1. Connect to the Tracker(ID and IP will be registered).
+2. Query information about other accessible terminals(IP).
+3. Connect to other known terminals;
+4. Send information to other Termnal communication;
+5. Send file data to other terminals.
+6. Disconnect from other terminals;
+7. Disconnect from the Tracker.
+8. Exit.
+Do not write Chinese comments in demo code.
+

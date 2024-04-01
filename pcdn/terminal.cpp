@@ -1,169 +1,197 @@
-#include <arpa/inet.h>
+// terminal.c (Client Application)
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 #include <sys/socket.h>
-#include <iostream>
-#include <string>
-#include <thread>
-#include <unordered_map>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
-std::unordered_map<std::string, int>
-    peer_connections;  // 存储与其他 Terminal 的连接
+#define BUFFER_SIZE 1024
+#define MAX_CLIENTS 10
+#define SERVER_PORT 8889
 
-void handle_peer_connection(int peer_fd, std::string peer_id) {
-  char buffer[1024];
-  while (true) {
-    int bytes_read = recv(peer_fd, buffer, 1024, 0);
-    if (bytes_read <= 0) {
-      break;
+int tracker_fd;
+int client_id;
+char client_ips[MAX_CLIENTS][16];
+int num_clients = 0;
+
+int server_fd;
+
+void start_server() {
+    struct sockaddr_in server_addr;
+
+    // Create server socket
+    server_fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (server_fd < 0) {
+        perror("socket");
+        exit(1);
     }
-    buffer[bytes_read] = '\0';
-    std::cout << "Received from " << peer_id << ": " << buffer << std::endl;
-  }
-  close(peer_fd);
-  peer_connections.erase(peer_id);
+
+    memset(&server_addr, 0, sizeof(server_addr));
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_addr.s_addr = INADDR_ANY;
+    server_addr.sin_port = htons(SERVER_PORT);
+
+    // Bind socket to address
+    if (bind(server_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
+        perror("bind");
+        exit(1);
+    }
+
+    // Listen for incoming connections
+    if (listen(server_fd, MAX_CLIENTS) < 0) {
+        perror("listen");
+        exit(1);
+    }
+
+    printf("Server is listening on port %d...\n", SERVER_PORT);
+}
+
+
+void connect_to_tracker() {
+    struct sockaddr_in tracker_addr;
+
+    // Connect to the Tracker
+    tracker_fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (tracker_fd < 0) {
+        perror("socket");
+        exit(1);
+    }
+
+    memset(&tracker_addr, 0, sizeof(tracker_addr));
+    tracker_addr.sin_family = AF_INET;
+    tracker_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    tracker_addr.sin_port = htons(8888);
+
+    if (connect(tracker_fd, (struct sockaddr *)&tracker_addr, sizeof(tracker_addr)) < 0) {
+        perror("connect");
+        exit(1);
+    }
+
+    printf("Connected to Tracker.\n");
+}
+
+void disconnect_from_tracker() {
+    close(tracker_fd);
+    printf("Disconnected from Tracker.\n");
+}
+
+void query_other_clients() {
+    char buffer[BUFFER_SIZE];
+    int bytes_read;
+
+    // Send a request to the Tracker for client information
+    if (send(tracker_fd, "GET_CLIENTS", strlen("GET_CLIENTS"), 0) < 0) {
+        perror("send");
+        return;
+    }
+
+    // Receive client information
+    memset(buffer, 0, BUFFER_SIZE);
+    bytes_read = recv(tracker_fd, buffer, BUFFER_SIZE, 0);
+    if (bytes_read < 0) {
+        perror("recv");
+        return;
+    } else if (bytes_read == 0) {
+        printf("Connection closed by the Tracker.\n");
+        return;
+    }
+
+    // Parse client information
+    char *token = strtok(buffer, " ");
+    num_clients = 0;
+    while (token != NULL) {
+        strcpy(client_ips[num_clients], token);
+        num_clients++;
+        token = strtok(NULL, " ");
+    }
+
+    printf("Other accessible clients:\n");
+    for (int i = 0; i < num_clients; i++) {
+        printf("%s\n", client_ips[i]);
+    }
+}
+
+void connect_to_client(char *ip) {
+    int client_fd;
+    struct sockaddr_in client_addr;
+
+    // Create a socket for the client connection
+    client_fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (client_fd < 0) {
+        perror("socket");
+        return;
+    }
+
+    memset(&client_addr, 0, sizeof(client_addr));
+    client_addr.sin_family = AF_INET;
+    client_addr.sin_addr.s_addr = inet_addr(ip);
+    client_addr.sin_port = htons(8888);
+
+    // Connect to the client
+    if (connect(client_fd, (struct sockaddr *)&client_addr, sizeof(client_addr)) < 0) {
+        perror("connect");
+        close(client_fd);
+        return;
+    }
+
+    printf("Connected to %s\n", ip);
+
+    // TODO: Implement functionality for sending data, files, and disconnecting
+    close(client_fd);
 }
 
 int main() {
-  std::string self_id;
-  std::cout << "Enter your ID: ";
-  std::cin >> self_id;
+    int choice;
+    char ip[16];
 
-  int tracker_fd = socket(AF_INET, SOCK_STREAM, 0);
-  struct sockaddr_in tracker_addr;
-  tracker_addr.sin_family      = AF_INET;
-  tracker_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
-  tracker_addr.sin_port        = htons(8888);
+    connect_to_tracker();
 
-  connect(tracker_fd, (struct sockaddr*)&tracker_addr, sizeof(tracker_addr));
+    while (1) {
+        printf("\nClient Menu:\n");
+        printf("1. Connect to the Tracker (already connected)\n");
+        printf("2. Query information about other accessible terminals\n");
+        printf("3. Connect to other known terminals\n");
+        printf("4. Send information to other terminals\n");
+        printf("5. Send file data to other terminals\n");
+        printf("6. Disconnect from other terminals\n");
+        printf("7. Disconnect from the Tracker\n");
+        printf("8. Exit\n");
+        printf("Enter your choice: ");
+        scanf("%d", &choice);
 
-  // 发送自己的 client ID 给 Tracker
-  send(tracker_fd, self_id.c_str(), self_id.length(), 0);
-
-  int server_fd = socket(AF_INET, SOCK_STREAM, 0);
-  struct sockaddr_in server_addr;
-  memset(&server_addr, 0, sizeof(server_addr));
-  server_addr.sin_family      = AF_INET;
-  server_addr.sin_addr.s_addr = INADDR_ANY;
-  server_addr.sin_port        = htons(9999);
-
-  bind(server_fd, (struct sockaddr*)&server_addr, sizeof(server_addr));
-  listen(server_fd, 5);
-
-  std::thread server_thread([&]() {
-    while (true) {
-      struct sockaddr_in client_addr;
-      socklen_t addr_len = sizeof(client_addr);
-      int client_fd =
-          accept(server_fd, (struct sockaddr*)&client_addr, &addr_len);
-
-      char buffer[1024];
-      int bytes_read     = recv(client_fd, buffer, 1024, 0);
-      buffer[bytes_read] = '\0';
-      std::string peer_id(buffer);
-
-      peer_connections[peer_id] = client_fd;
-      std::thread peer_thread(handle_peer_connection, client_fd, peer_id);
-      peer_thread.detach();
+        switch (choice) {
+            case 1:
+                printf("Already connected to the Tracker.\n");
+                break;
+            case 2:
+                query_other_clients();
+                break;
+            case 3:
+                printf("Enter the IP of the client to connect to: ");
+                scanf("%s", ip);
+                connect_to_client(ip);
+                break;
+            case 4:
+                // TODO: Implement sending information to other clients
+                break;
+            case 5:
+                // TODO: Implement sending file data to other clients
+                break;
+            case 6:
+                // TODO: Implement disconnecting from other clients
+                break;
+            case 7:
+                disconnect_from_tracker();
+                break;
+            case 8:
+                disconnect_from_tracker();
+                exit(0);
+            default:
+                printf("Invalid choice. Try again.\n");
+        }
     }
-  });
 
-  std::string command;
-  while (true) {
-    std::cout << "Enter command (1-8): ";
-    std::cin >> command;
-
-    if (command == "1") {
-      // 连接 Tracker 注册自身信息 (已完成)
-    } else if (command == "2") {
-      // 查询可访问的其他 Terminal 信息
-      std::string target_id;
-      std::cout << "Enter target ID: ";
-      std::cin >> target_id;
-      send(tracker_fd, target_id.c_str(), target_id.length(), 0);
-
-      char buffer[1024];
-      int bytes_read     = recv(tracker_fd, buffer, 1024, 0);
-      buffer[bytes_read] = '\0';
-      std::string target_ip(buffer);
-
-      std::cout << "Target IP: " << target_ip << std::endl;
-
-    } else if (command == "3") {
-      // 连接其他已知的 Terminal
-      std::string target_id, target_ip;
-      std::cout << "Enter target ID: ";
-      std::cin >> target_id;
-      std::cout << "Enter target IP: ";
-      std::cin >> target_ip;
-
-      int peer_fd = socket(AF_INET, SOCK_STREAM, 0);
-      struct sockaddr_in peer_addr;
-      peer_addr.sin_family      = AF_INET;
-      peer_addr.sin_addr.s_addr = inet_addr(target_ip.c_str());
-      peer_addr.sin_port        = htons(9999);
-
-      if (connect(peer_fd, (struct sockaddr*)&peer_addr, sizeof(peer_addr)) ==
-          0) {
-        send(peer_fd, self_id.c_str(), self_id.length(), 0);
-        // 继续上面的 Terminal 客户端代码
-      } else if (command == "4") {
-        // 向其他 Terminal 通信发信息
-        std::string target_id, message;
-        std::cout << "Enter target ID: ";
-        std::cin >> target_id;
-        std::cout << "Enter message: ";
-        std::cin.ignore();
-        std::getline(std::cin, message);
-
-        auto it = peer_connections.find(target_id);
-        if (it != peer_connections.end()) {
-          int peer_fd = it->second;
-          send(peer_fd, message.c_str(), message.length(), 0);
-        } else {
-          std::cout << "Target not connected" << std::endl;
-        }
-      } else if (command == "5") {
-        // 向其他 Terminal 发文件数据
-        std::string target_id, file_path;
-        std::cout << "Enter target ID: ";
-        std::cin >> target_id;
-        std::cout << "Enter file path: ";
-        std::cin >> file_path;
-
-        auto it = peer_connections.find(target_id);
-        if (it != peer_connections.end()) {
-          int peer_fd = it->second;
-          // 发送文件数据
-          // ...
-        } else {
-          std::cout << "Target not connected" << std::endl;
-        }
-      } else if (command == "6") {
-        // 断开与其他 Terminal 的连接
-        std::string target_id;
-        std::cout << "Enter target ID: ";
-        std::cin >> target_id;
-
-        auto it = peer_connections.find(target_id);
-        if (it != peer_connections.end()) {
-          int peer_fd = it->second;
-          close(peer_fd);
-          peer_connections.erase(it);
-        } else {
-          std::cout << "Target not connected" << std::endl;
-        }
-      } else if (command == "7") {
-        // 断开与 Tracker 的连接
-        close(tracker_fd);
-        std::cout << "Disconnected from Tracker" << std::endl;
-      } else if (command == "8") {
-        // 退出
-        close(server_fd);
-        for (auto& pair : peer_connections) {
-          close(pair.second);
-        }
-        peer_connections.clear();
-        std::cout << "Exiting..." << std::endl;
-        break;
-      } else {
-        std::cout << "Invalid command" << std::endl;
-      }
+    return 0;
+}
