@@ -5,16 +5,17 @@ project(cxx_logger LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
 
-add_executable(cxx_logger main.cpp
-  main_0.cpp.md
-  logger/logger.h
-  logger/logger.cpp
+#add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+
+add_executable(${PROJECT_NAME} main.cpp
+        logger.hpp
 )
+
+target_compile_definitions(${PROJECT_NAME} PRIVATE -D_CRT_SECURE_NO_WARNINGS)
 
 include(GNUInstallDirs)
 install(TARGETS cxx_logger

@@ -1,137 +1,109 @@
 #ifndef LOGGER_H
 #define LOGGER_H
 
-#include <condition_variable>
+#include <iostream>
 #include <fstream>
-#include <mutex>
-#include <queue>
+#include <sstream>
 #include <string>
+#include <mutex>
+#include <memory>
+#include <chrono>
+#include <iomanip>
+#include <ctime>
 #include <thread>
+#include <atomic>
 
-class Logger {
- public:
-  // Log level enumeration
-  enum class LogLevel { kDebug, kInfo, kWarning, kError };
-
-  // Singleton instance of Logger
-  static Logger& Instance();
-
-  // Delete copy constructor and assignment operator
-  Logger(const Logger&) = delete;
-  Logger& operator=(const Logger&) = delete;
-
-  // Initialize log file with optional max file size and inclusion of date in
-  // logs
-  void InitLogFile(std::size_t max_file_size = 10 * 1024 * 1024,
-                   bool include_date_in_log = true);
-
-  // Set the minimum log level
-  void SetLogLevel(LogLevel level);
-
-  // Set the log format (supports placeholders like {timestamp}, {message},
-  // etc.)
-  void SetLogFormat(const std::string& format);
-
-  // Log a message using lazy evaluation
-  template <typename Func>
-  void Log(LogLevel level, Func message_generator,
-           const std::string& function_name);
-
-  // Convenient methods for logging at specific levels
-  template <typename Func>
-  void Debug(Func message_generator, const std::string& function_name);
-  template <typename Func>
-  void Info(Func message_generator, const std::string& function_name);
-  template <typename Func>
-  void Warn(Func message_generator, const std::string& function_name);
-  template <typename Func>
-  void Error(Func message_generator, const std::string& function_name);
-
- private:
-  Logger();   // Private constructor
-  ~Logger();  // Private destructor
-
-  // Create a new log file (rolling)
-  void CreateNewLogFile();
-
-  // Generate a log file name based on the current date and time
-  std::string GenerateLogFileName();
-
-  // Format the log message, including optional date
-  std::string FormatLogMessage(LogLevel level, const std::string& message,
-                               const std::string& function_name);
-
-  // Replace placeholders in the log format string
-  std::string ReplacePlaceholder(const std::string& format,
-                                 const std::string& placeholder,
-                                 const std::string& value);
-
-  // Log processing worker thread
-  void LogWorker();
-
-  std::ofstream log_file_;  // Log file output stream
-  std::mutex mutex_;        // Mutex for log file operations
-  std::mutex queue_mutex_;  // Mutex for log queue
-  std::condition_variable
-      queue_condition_;  // Condition variable for queue processing
-  std::queue<std::string> log_queue_;  // Queue to store log messages
-  std::thread log_thread_;             // Background thread for logging
-  std::atomic<bool> stop_logging_;     // Flag to stop logging
-  LogLevel min_log_level_;             // Minimum log level
-  std::size_t max_file_size_;          // Maximum log file size
-  std::size_t current_file_size_;      // Current log file size
-  bool include_date_in_log_;           // Flag to include date in log messages
-  std::string log_format_ =
-      "{timestamp} [{level}] [{thread_id}] [{function}] "
-      "{message}";  // Log message format
+enum class LogLevel {
+    DEBUG,
+    INFO,
+    WARN,
+    ERROR
 };
 
-// Template function to log messages lazily
-template <typename Func>
-void Logger::Log(LogLevel level, Func message_generator,
-                 const std::string& function_name) {
-  if (level < min_log_level_) return;
+class Logger {
+public:
+    static Logger& getInstance() {
+        static Logger instance;
+        return instance;
+    }
 
-  // Lazy evaluation of the log message
-  std::string message = message_generator();
+    void setLogLevel(LogLevel level) {
+        logLevel_.store(level);
+    }
 
-  // Add log message to queue for asynchronous processing
-  {
-    std::lock_guard<std::mutex> lock(queue_mutex_);
-    log_queue_.emplace(FormatLogMessage(level, message, function_name));
-  }
-  queue_condition_.notify_one();
-}
+    void setLogFile(const std::string& filename) {
+        std::lock_guard<std::mutex> lock(fileMutex_);
+        if (logFile_.is_open()) {
+            logFile_.close();
+        }
+        logFile_.open(filename, std::ios::out | std::ios::app);
+    }
 
-// Convenience methods for different log levels
-template <typename Func>
-void Logger::Debug(Func message_generator, const std::string& function_name) {
-  Log(LogLevel::kDebug, message_generator, function_name);
-}
+    template<typename... Args>
+    void log(LogLevel level, const std::string& format, Args... args) {
+        if (level < logLevel_.load()) {
+            return;
+        }
 
-template <typename Func>
-void Logger::Info(Func message_generator, const std::string& function_name) {
-  Log(LogLevel::kInfo, message_generator, function_name);
-}
+        std::stringstream ss;
+        formatLog(ss, level);
+        formatMessage(ss, format, args...);
 
-template <typename Func>
-void Logger::Warn(Func message_generator, const std::string& function_name) {
-  Log(LogLevel::kWarning, message_generator, function_name);
-}
+        std::lock_guard<std::mutex> lock(logMutex_);
+        std::cout << ss.str();
+        if (logFile_.is_open()) {
+            logFile_ << ss.str();
+            logFile_.flush();
+        }
+    }
 
-template <typename Func>
-void Logger::Error(Func message_generator, const std::string& function_name) {
-  Log(LogLevel::kError, message_generator, function_name);
-}
+private:
+    Logger() : logLevel_(LogLevel::DEBUG) {}
+    ~Logger() {
+        if (logFile_.is_open()) {
+            logFile_.close();
+        }
+    }
 
-// Macro to simplify logging with function names
-#define LOG_DEBUG(message) \
-  Logger::Instance().Debug([&]() { return message; }, __FUNCTION__)
-#define LOG_INFO(message) \
-  Logger::Instance().Info([&]() { return message; }, __FUNCTION__)
-#define LOG_WARN(message) \
-  Logger::Instance().Warn([&]() { return message; }, __FUNCTION__)
-#define LOG_ERROR(message) \
-  Logger::Instance().Error([&]() { return message; }, __FUNCTION__)
+    Logger(const Logger&) = delete;
+    Logger& operator=(const Logger&) = delete;
 
-#endif  // LOGGER_H
+    void formatLog(std::stringstream& ss, LogLevel level) {
+        auto now = std::chrono::system_clock::now();
+        auto now_time_t = std::chrono::system_clock::to_time_t(now);
+        auto now_tm = *std::localtime(&now_time_t);
+
+        ss << "[" << std::put_time(&now_tm, "%Y-%m-%d %H:%M:%S") << "]"
+           << "[" << std::this_thread::get_id() << "]"
+           << "[" << logLevelToString(level) << "] ";
+    }
+
+    std::string logLevelToString(LogLevel level) {
+        switch (level) {
+            case LogLevel::DEBUG: return "DEBUG";
+            case LogLevel::INFO:  return "INFO";
+            case LogLevel::WARN:  return "WARN";
+            case LogLevel::ERROR: return "ERROR";
+            default:              return "UNKNOWN";
+        }
+    }
+
+    template<typename... Args>
+    void formatMessage(std::stringstream& ss, const std::string& format, Args... args) {
+        char buffer[1024];
+        snprintf(buffer, sizeof(buffer), format.c_str(), args...);
+        ss << buffer << std::endl;
+    }
+
+    std::ofstream logFile_;
+    std::mutex logMutex_;
+    std::mutex fileMutex_;
+    std::atomic<LogLevel> logLevel_;
+};
+
+#define LOG_DEBUG(format, ...) Logger::getInstance().log(LogLevel::DEBUG, format, ##__VA_ARGS__)
+#define LOG_INFO(format, ...)  Logger::getInstance().log(LogLevel::INFO,  format, ##__VA_ARGS__)
+#define LOG_WARN(format, ...)  Logger::getInstance().log(LogLevel::WARN,  format, ##__VA_ARGS__)
+#define LOG_ERROR(format, ...) Logger::getInstance().log(LogLevel::ERROR, format, ##__VA_ARGS__)
+
+#endif // LOGGER_H

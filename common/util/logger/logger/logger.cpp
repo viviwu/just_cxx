@@ -1,154 +1,167 @@
 #include "logger.h"
 
-#include <atomic>
-#include <ctime>
-#include <functional>
 #include <iostream>
-#include <sstream>
+#include <iomanip>
+#include <chrono>
+#include <ctime>
+#include <fstream>
+#include <mutex>
+#include <cstdarg>
 
-// Singleton instance of Logger
-Logger& Logger::Instance() {
+// Logger constructor
+Logger::Logger()
+    : stop_thread_(false),
+      current_level_(kDebug),
+      max_file_size_(kDefaultMaxFileSize),
+      log_directory_("./") {
+  // Start the log processing thread
+  log_thread_ = std::thread(&Logger::LogProcessingThread, this);
+}
+
+// Logger destructor
+Logger::~Logger() {
+  stop_thread_ = true;
+  cv_.notify_all();  // Notify the log processing thread to stop.
+
+  if (log_thread_.joinable()) {
+    log_thread_.join();  // Ensure the log processing thread finishes
+  }
+
+  // Close the log file safely
+  if (log_file_.is_open()) {
+    log_file_.close();
+  }
+}
+
+// Get singleton instance of Logger
+Logger& Logger::GetInstance() {
   static Logger instance;
   return instance;
 }
 
-// Constructor
-Logger::Logger() : min_log_level_(LogLevel::kDebug), stop_logging_(false) {
-  log_thread_ = std::thread(&Logger::LogWorker, this);
+// Set the log level
+void Logger::SetLogLevel(LogLevel level) {
+  current_level_ = level;
 }
 
-// Destructor
-Logger::~Logger() {
-  {
-    std::lock_guard<std::mutex> lock(queue_mutex_);
-    stop_logging_ = true;
-  }
-  queue_condition_.notify_all();
-  if (log_thread_.joinable()) {
-    log_thread_.join();
-  }
-  if (log_file_.is_open()) {
-    log_file_.close();
-  }
-}
-
-// Initialize the log file with a maximum size and option to include the date in
-// logs
-void Logger::InitLogFile(std::size_t max_file_size, bool include_date_in_log) {
+// Set the directory where log files will be stored
+void Logger::SetLogDirectory(const std::string& directory) {
   std::lock_guard<std::mutex> lock(mutex_);
-  max_file_size_ = max_file_size;
-  include_date_in_log_ = include_date_in_log;
-  current_file_size_ = 0;
-  CreateNewLogFile();
+  log_directory_ = directory;
 }
 
-// Set the minimum log level
-void Logger::SetLogLevel(LogLevel level) { min_log_level_ = level; }
+// Log a message with the specified log level
+void Logger::Log(LogLevel level, const char* format, ...) {
+  if (!ShouldLog(level)) return;
 
-// Set the log message format
-void Logger::SetLogFormat(const std::string& format) { log_format_ = format; }
+  // Use unique_lock for thread safety
+  std::unique_lock<std::mutex> lock(mutex_);
 
-// Create a new log file (rolling file)
-void Logger::CreateNewLogFile() {
-  if (log_file_.is_open()) {
-    log_file_.close();
-  }
-  std::string file_name = GenerateLogFileName();
-  log_file_.open(file_name, std::ios::out);
-  if (!log_file_.is_open()) {
-    std::cerr << "Failed to open log file: " << file_name << std::endl;
-  }
-  current_file_size_ = 0;
-}
+  // Get current timestamp
+  std::string current_time = GetCurrentTime();
 
-// Generate a log file name based on the current date and time
-std::string Logger::GenerateLogFileName() {
-  std::time_t now = std::time(nullptr);
-  char time_str[20];
-  std::strftime(time_str, sizeof(time_str), "%Y-%m-%d_%H-%M-%S",
-                std::localtime(&now));
-  return "log_" + std::string(time_str) + ".log";
-}
-
-// Format the log message with optional date and thread ID
-std::string Logger::FormatLogMessage(LogLevel level, const std::string& message,
-                                     const std::string& function_name) {
-  std::string level_str;
+  // Determine log level string
+  std::string log_level_str;
   switch (level) {
-    case LogLevel::kDebug:
-      level_str = "DEBUG";
-      break;
-    case LogLevel::kInfo:
-      level_str = "INFO";
-      break;
-    case LogLevel::kWarning:
-      level_str = "WARNING";
-      break;
-    case LogLevel::kError:
-      level_str = "ERROR";
-      break;
+    case kDebug: log_level_str = "DEBUG"; break;
+    case kInfo: log_level_str = "INFO"; break;
+    case kWarn: log_level_str = "WARN"; break;
+    case kError: log_level_str = "ERROR"; break;
   }
 
-  // Get current time
-  std::time_t now = std::time(nullptr);
-  char time_str[20];
-  std::strftime(time_str, sizeof(time_str),
-                include_date_in_log_ ? "%Y-%m-%d %H:%M:%S" : "%H:%M:%S",
-                std::localtime(&now));
+  // Format the log message
+  va_list args;
+  va_start(args, format);
+  char buffer[1024];
+  vsnprintf(buffer, sizeof(buffer), format, args);
+  va_end(args);
 
-  // Get current thread ID
-  std::ostringstream thread_id_stream;
+  // Convert thread ID to string
+  std::stringstream thread_id_stream;
   thread_id_stream << std::this_thread::get_id();
-  std::string thread_id_str = thread_id_stream.str();
 
-  // Replace placeholders in log format
-  std::string log_message = log_format_;
-  log_message = ReplacePlaceholder(log_message, "{timestamp}", time_str);
-  log_message = ReplacePlaceholder(log_message, "{thread_id}", thread_id_str);
-  log_message = ReplacePlaceholder(log_message, "{level}", level_str);
-  log_message = ReplacePlaceholder(log_message, "{function}", function_name);
-  log_message = ReplacePlaceholder(log_message, "{message}", message);
+  // Combine everything into the final log message
+  std::string message = "[" + current_time + "][" + thread_id_stream.str() + "][" + log_level_str + "] " + buffer;
 
-  return log_message;
+  // Put the log message into the queue
+  log_queue_.push(message);
+  cv_.notify_one();  // Notify the log processing thread to process the log
 }
 
-// Replace placeholders in the log format
-std::string Logger::ReplacePlaceholder(const std::string& format,
-                                       const std::string& placeholder,
-                                       const std::string& value) {
-  std::string result = format;
-  std::size_t pos = result.find(placeholder);
-  while (pos != std::string::npos) {
-    result.replace(pos, placeholder.length(), value);
-    pos = result.find(placeholder, pos + value.length());
-  }
-  return result;
-}
-
-// Log processing worker thread
-void Logger::LogWorker() {
-  while (!stop_logging_ || !log_queue_.empty()) {
-    std::unique_lock<std::mutex> lock(queue_mutex_);
-    queue_condition_.wait(
-        lock, [this]() { return stop_logging_ || !log_queue_.empty(); });
+// The log processing thread function
+void Logger::LogProcessingThread() {
+  while (!stop_thread_) {
+    std::unique_lock<std::mutex> lock(mutex_);
+    cv_.wait(lock, [this] { return !log_queue_.empty() || stop_thread_; });
 
     while (!log_queue_.empty()) {
-      std::string log_entry = log_queue_.front();
+      std::string message = log_queue_.front();
       log_queue_.pop();
-      lock.unlock();
 
-      std::lock_guard<std::mutex> file_lock(mutex_);
-      if (log_file_.is_open()) {
-        log_file_ << log_entry << std::endl;
-        current_file_size_ += log_entry.size();
-
-        // Check if we need to roll the log file
-        if (current_file_size_ >= max_file_size_) {
-          CreateNewLogFile();
-        }
-      }
-
-      lock.lock();
+      // Write to both file and console
+      WriteToFile(message);
+      WriteToConsole(message);
     }
   }
+}
+
+// Get the current timestamp as a string
+std::string Logger::GetCurrentTime() {
+  auto now = std::chrono::system_clock::now();
+  auto time = std::chrono::system_clock::to_time_t(now);
+  std::stringstream ss;
+  ss << std::put_time(std::localtime(&time), "%Y-%m-%d %H:%M:%S");
+  return ss.str();
+}
+
+// Check if the log level is enabled for logging
+bool Logger::ShouldLog(LogLevel level) {
+  return level >= current_level_;
+}
+
+// Write log message to the file
+void Logger::WriteToFile(const std::string& message) {
+  CheckAndCreateLogFile();
+
+  if (log_file_.is_open()) {
+    log_file_ << message << std::endl;
+  } else {
+    std::cerr << "Failed to write to log file!" << std::endl;
+  }
+}
+
+// Write log message to the console
+void Logger::WriteToConsole(const std::string& message) {
+  std::cout << message << std::endl;
+}
+
+// Check if the log file exists and is writable, and create a new one if necessary
+void Logger::CheckAndCreateLogFile() {
+  // Open log file if not already opened
+  if (!log_file_.is_open()) {
+    std::string log_filename = GetLogFileName();
+    log_file_.open(log_filename, std::ios_base::app);  // Open in append mode
+
+    if (!log_file_.is_open()) {
+      std::cerr << "Failed to open log file: " << log_filename << std::endl;
+    }
+  }
+
+  // Check if the file size exceeds max size and roll over if necessary
+  if (log_file_.tellp() >= max_file_size_) {
+    log_file_.close();  // Close the current file
+    log_file_.open(GetLogFileName(), std::ios_base::app);  // Open a new file
+  }
+}
+
+// Generate the log file name based on the current date
+std::string Logger::GetLogFileName() {
+  auto now = std::chrono::system_clock::now();
+  auto time = std::chrono::system_clock::to_time_t(now);
+  std::tm tm;
+  localtime_s(&tm, &time);
+
+  std::stringstream ss;
+  ss << log_directory_ << "/log_" << std::put_time(&tm, "%Y-%m-%d") << ".log";
+  return ss.str();
 }
